@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/yorukot/superfile/src/config/icon"
-	"github.com/yorukot/superfile/src/internal/ui/processbar"
+	"github.com/fsncps/hyperfile/src/config/icon"
+	"github.com/fsncps/hyperfile/src/internal/ui/processbar"
 	"golift.io/xtractr"
 )
 

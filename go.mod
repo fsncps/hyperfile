@@ -1,4 +1,4 @@
-module github.com/yorukot/superfile
+module github.com/fsncps/hyperfile
 
 go 1.24.1
 

@@ -3,7 +3,7 @@ package common
 import (
 	"testing"
 
-	"github.com/yorukot/superfile/src/config/icon"
+	"github.com/fsncps/hyperfile/src/config/icon"
 )
 
 func TestGetElementIcon(t *testing.T) {

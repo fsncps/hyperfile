@@ -7,8 +7,8 @@ import (
 	"slices"
 
 	tea "github.com/charmbracelet/bubbletea"
-	variable "github.com/yorukot/superfile/src/config"
-	"github.com/yorukot/superfile/src/internal/common"
+	variable "github.com/fsncps/hyperfile/src/config"
+	"github.com/fsncps/hyperfile/src/internal/common"
 )
 
 // Rename file where the cursor is located

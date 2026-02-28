@@ -4,11 +4,11 @@ import (
 	"log/slog"
 	"slices"
 
-	"github.com/yorukot/superfile/src/internal/common"
-	"github.com/yorukot/superfile/src/internal/ui/notify"
+	"github.com/fsncps/hyperfile/src/internal/common"
+	"github.com/fsncps/hyperfile/src/internal/ui/notify"
 
 	tea "github.com/charmbracelet/bubbletea"
-	variable "github.com/yorukot/superfile/src/config"
+	variable "github.com/fsncps/hyperfile/src/config"
 )
 
 // mainKey handles most of key commands in the regular state of the application. For

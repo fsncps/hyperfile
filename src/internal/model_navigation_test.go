@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/fsncps/hyperfile/src/internal/common"
+	"github.com/fsncps/hyperfile/src/internal/utils"
 	"github.com/stretchr/testify/assert"
-	"github.com/yorukot/superfile/src/internal/common"
-	"github.com/yorukot/superfile/src/internal/utils"
 )
 
 func TestFilePanelNavigation(t *testing.T) {

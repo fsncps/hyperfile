@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/yorukot/superfile/src/internal/utils"
+	"github.com/fsncps/hyperfile/src/internal/utils"
 
-	variable "github.com/yorukot/superfile/src/config"
+	variable "github.com/fsncps/hyperfile/src/config"
 )
 
 // Back to parent directory

@@ -3,8 +3,8 @@ package internal
 import (
 	"fmt"
 
-	"github.com/yorukot/superfile/src/internal/common"
-	"github.com/yorukot/superfile/src/internal/utils"
+	"github.com/fsncps/hyperfile/src/internal/common"
+	"github.com/fsncps/hyperfile/src/internal/utils"
 )
 
 const invalidTypeString = "InvalidType"

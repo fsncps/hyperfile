@@ -8,15 +8,15 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/yorukot/superfile/src/internal/ui/processbar"
-	"github.com/yorukot/superfile/src/internal/ui/rendering"
-	"github.com/yorukot/superfile/src/internal/ui/sidebar"
-	"github.com/yorukot/superfile/src/internal/utils"
+	"github.com/fsncps/hyperfile/src/internal/ui/processbar"
+	"github.com/fsncps/hyperfile/src/internal/ui/rendering"
+	"github.com/fsncps/hyperfile/src/internal/ui/sidebar"
+	"github.com/fsncps/hyperfile/src/internal/utils"
 
 	"github.com/barasher/go-exiftool"
-	variable "github.com/yorukot/superfile/src/config"
-	"github.com/yorukot/superfile/src/config/icon"
-	"github.com/yorukot/superfile/src/internal/common"
+	variable "github.com/fsncps/hyperfile/src/config"
+	"github.com/fsncps/hyperfile/src/config/icon"
+	"github.com/fsncps/hyperfile/src/internal/common"
 )
 
 // initialConfig load and handle all configuration files (spf config,Hotkeys

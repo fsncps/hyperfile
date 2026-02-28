@@ -4,9 +4,9 @@ import (
 	"log/slog"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/yorukot/superfile/src/internal/ui/metadata"
-	"github.com/yorukot/superfile/src/internal/ui/notify"
-	"github.com/yorukot/superfile/src/internal/ui/processbar"
+	"github.com/fsncps/hyperfile/src/internal/ui/metadata"
+	"github.com/fsncps/hyperfile/src/internal/ui/notify"
+	"github.com/fsncps/hyperfile/src/internal/ui/processbar"
 )
 
 type ModelUpdateMessage interface {

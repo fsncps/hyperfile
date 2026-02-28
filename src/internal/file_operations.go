@@ -9,13 +9,13 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/yorukot/superfile/src/internal/ui/processbar"
-	"github.com/yorukot/superfile/src/internal/utils"
+	"github.com/fsncps/hyperfile/src/internal/ui/processbar"
+	"github.com/fsncps/hyperfile/src/internal/utils"
 
+	variable "github.com/fsncps/hyperfile/src/config"
+	"github.com/fsncps/hyperfile/src/config/icon"
 	trash_win "github.com/hymkor/trash-go"
 	"github.com/rkoesters/xdg/trash"
-	variable "github.com/yorukot/superfile/src/config"
-	"github.com/yorukot/superfile/src/config/icon"
 )
 
 // isSamePartition checks if two paths are on the same filesystem partition

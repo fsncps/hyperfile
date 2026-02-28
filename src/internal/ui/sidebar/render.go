@@ -3,11 +3,11 @@ package sidebar
 import (
 	"log/slog"
 
-	"github.com/yorukot/superfile/src/internal/ui"
+	"github.com/fsncps/hyperfile/src/internal/ui"
 
-	"github.com/yorukot/superfile/src/config/icon"
-	"github.com/yorukot/superfile/src/internal/common"
-	"github.com/yorukot/superfile/src/internal/ui/rendering"
+	"github.com/fsncps/hyperfile/src/config/icon"
+	"github.com/fsncps/hyperfile/src/internal/common"
+	"github.com/fsncps/hyperfile/src/internal/ui/rendering"
 )
 
 // Render returns the rendered sidebar string

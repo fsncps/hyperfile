@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/yorukot/superfile/src/internal/utils"
+	"github.com/fsncps/hyperfile/src/internal/utils"
 )
 
 type IgnorerWriter struct{}

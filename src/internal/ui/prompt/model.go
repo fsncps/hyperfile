@@ -6,11 +6,11 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/yorukot/superfile/src/internal/ui"
+	"github.com/fsncps/hyperfile/src/internal/ui"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/yorukot/superfile/src/config/icon"
-	"github.com/yorukot/superfile/src/internal/common"
+	"github.com/fsncps/hyperfile/src/config/icon"
+	"github.com/fsncps/hyperfile/src/internal/common"
 )
 
 func DefaultModel(maxHeight int, width int) Model {

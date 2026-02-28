@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/yorukot/superfile/src/config/icon"
+	"github.com/fsncps/hyperfile/src/config/icon"
 )
 
 func GetElementIcon(file string, isDir bool, nerdFont bool) icon.Style {

@@ -3,7 +3,7 @@ package metadata
 import (
 	"fmt"
 
-	"github.com/yorukot/superfile/src/internal/ui"
+	"github.com/fsncps/hyperfile/src/internal/ui"
 )
 
 type Model struct {

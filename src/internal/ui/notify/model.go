@@ -1,7 +1,7 @@
 package notify
 
 import (
-	"github.com/yorukot/superfile/src/internal/common"
+	"github.com/fsncps/hyperfile/src/internal/common"
 )
 
 type Model struct {

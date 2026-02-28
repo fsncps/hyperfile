@@ -3,8 +3,8 @@ package prompt
 import (
 	"testing"
 
+	"github.com/fsncps/hyperfile/src/internal/common"
 	"github.com/stretchr/testify/assert"
-	"github.com/yorukot/superfile/src/internal/common"
 )
 
 func TestModel_getPromptAction(t *testing.T) {

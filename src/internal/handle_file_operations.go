@@ -11,16 +11,16 @@ import (
 	"strings"
 	"time"
 
-	variable "github.com/yorukot/superfile/src/config"
-	"github.com/yorukot/superfile/src/internal/ui/notify"
-	"github.com/yorukot/superfile/src/internal/ui/processbar"
-	"github.com/yorukot/superfile/src/internal/utils"
+	variable "github.com/fsncps/hyperfile/src/config"
+	"github.com/fsncps/hyperfile/src/internal/ui/notify"
+	"github.com/fsncps/hyperfile/src/internal/ui/processbar"
+	"github.com/fsncps/hyperfile/src/internal/utils"
 
-	"github.com/yorukot/superfile/src/internal/common"
+	"github.com/fsncps/hyperfile/src/internal/common"
 
 	"github.com/atotto/clipboard"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/yorukot/superfile/src/config/icon"
+	"github.com/fsncps/hyperfile/src/config/icon"
 )
 
 // Create a file in the currently focus file panel

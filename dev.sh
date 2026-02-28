@@ -115,7 +115,7 @@ trap cleanup_venv EXIT INT TERM
 usage() {
     echo "Usage: $0 [OPTIONS]"
     echo ""
-    echo "A comprehensive script for formatting, testing, and building superfile"
+    echo "A comprehensive script for formatting, testing, and building hyperfile"
     echo ""
     echo "OPTIONS:"
     echo "  -t, --testsuite     Run integration testsuite after unit tests"
@@ -170,7 +170,7 @@ if [ "$VERBOSE" = true ]; then
     VERBOSE_FLAG="-v"
 fi
 
-printf "${BLUE}🚀 Starting superfile development workflow${NC}\n"
+printf "${BLUE}🚀 Starting hyperfile development workflow${NC}\n"
 echo ""
 
 # Step 1: Tidy up the go mod
@@ -294,8 +294,8 @@ if [ "$RUN_TESTSUITE" = true ]; then
 fi
 
 # Step 6: Build the app
-print_step "Building spf binary..."
-if CGO_ENABLED=0 go build -o ./bin/spf; then
+print_step "Building hpf binary..."
+if CGO_ENABLED=0 go build -o ./bin/hpf; then
     print_success "Build completed successfully"
 else
     print_error "Build failed"
@@ -304,10 +304,10 @@ fi
 
 echo ""
 printf "${GREEN}🎉 All steps completed successfully!${NC}\n"
-printf "${BLUE}Binary location:${NC} ./bin/spf\n"
+printf "${BLUE}Binary location:${NC} ./bin/hpf\n"
 
 # Show binary info
-if [ -f "./bin/spf" ]; then
-    BINARY_SIZE=$(du -h ./bin/spf | cut -f1)
+if [ -f "./bin/hpf" ]; then
+    BINARY_SIZE=$(du -h ./bin/hpf | cut -f1)
     printf "${BLUE}Binary size:${NC} $BINARY_SIZE\n"
 fi

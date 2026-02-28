@@ -3,7 +3,7 @@ package internal
 import (
 	"log/slog"
 
-	"github.com/yorukot/superfile/src/internal/common"
+	"github.com/fsncps/hyperfile/src/internal/common"
 )
 
 func wheelMainAction(msg string, m *model) {

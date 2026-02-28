@@ -25,22 +25,22 @@
         };
       in rec {
         packages = rec {
-          superfile = pkgs.buildGoApplication {
-            pname = "superfile";
+          hyperfile = pkgs.buildGoApplication {
+            pname = "hyperfile";
             version = "1.3.3";
             src = ./.;
             modules = ./gomod2nix.toml;
             nativeCheckInputs = [ pkgs.writableTmpDirAsHomeHook ];
           };
-          default = superfile;
+          default = hyperfile;
         };
 
         apps = rec {
-          superfile = {
+          hyperfile = {
             type = "app";
-            program = "${packages.superfile}/bin/superfile";
+            program = "${packages.hyperfile}/bin/hpf";
           };
-          default = superfile;
+          default = hyperfile;
         };
 
         devShells = {

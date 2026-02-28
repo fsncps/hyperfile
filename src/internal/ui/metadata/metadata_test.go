@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"github.com/barasher/go-exiftool"
+	"github.com/fsncps/hyperfile/src/internal/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/yorukot/superfile/src/internal/utils"
 )
 
 func TestGetMetadata(t *testing.T) {

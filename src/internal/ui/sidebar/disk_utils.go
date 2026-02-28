@@ -6,8 +6,8 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/fsncps/hyperfile/src/internal/utils"
 	"github.com/shirou/gopsutil/v4/disk"
-	"github.com/yorukot/superfile/src/internal/utils"
 )
 
 // Get external media directories

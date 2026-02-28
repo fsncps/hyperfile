@@ -8,11 +8,11 @@ import (
 	"path/filepath"
 	"slices"
 
-	"github.com/yorukot/superfile/src/internal/utils"
+	"github.com/fsncps/hyperfile/src/internal/utils"
 
 	"github.com/adrg/xdg"
-	variable "github.com/yorukot/superfile/src/config"
-	"github.com/yorukot/superfile/src/config/icon"
+	variable "github.com/fsncps/hyperfile/src/config"
+	"github.com/fsncps/hyperfile/src/config/icon"
 )
 
 // Return all sidebar directories

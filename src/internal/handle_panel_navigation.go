@@ -6,11 +6,11 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/yorukot/superfile/src/internal/ui/sidebar"
+	"github.com/fsncps/hyperfile/src/internal/ui/sidebar"
 
-	"github.com/yorukot/superfile/src/internal/common"
+	"github.com/fsncps/hyperfile/src/internal/common"
 
-	variable "github.com/yorukot/superfile/src/config"
+	variable "github.com/fsncps/hyperfile/src/config"
 )
 
 // Pinned directory

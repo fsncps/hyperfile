@@ -7,7 +7,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/yorukot/superfile/src/internal/common"
+	"github.com/fsncps/hyperfile/src/internal/common"
 )
 
 func getMaxKeyLength(meta [][2]string) int {

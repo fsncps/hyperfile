@@ -12,18 +12,18 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/yorukot/superfile/src/internal/common"
-	"github.com/yorukot/superfile/src/internal/utils"
+	"github.com/fsncps/hyperfile/src/internal/common"
+	"github.com/fsncps/hyperfile/src/internal/utils"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	variable "github.com/fsncps/hyperfile/src/config"
+	internal "github.com/fsncps/hyperfile/src/internal"
 	"github.com/urfave/cli/v3"
-	variable "github.com/yorukot/superfile/src/config"
-	internal "github.com/yorukot/superfile/src/internal"
 	"golang.org/x/mod/semver"
 )
 
-// Run superfile app
+// Run hyperfile app
 func Run(content embed.FS) {
 	// Enable custom colored help output
 	cli.HelpPrinter = CustomHelpPrinter //nolint:reassign // Intentionally reassigning to customize help output
@@ -35,7 +35,7 @@ func Run(content embed.FS) {
 	common.LoadAllDefaultConfig(content)
 
 	app := &cli.Command{
-		Name:        "superfile",
+		Name:        "hyperfile",
 		Version:     variable.CurrentVersion,
 		Description: "Pretty fancy and modern terminal file manager ",
 		ArgsUsage:   "[PATH]...",
@@ -56,9 +56,9 @@ func Run(content embed.FS) {
 					fmt.Printf("%-*s %s\n", 55, lipgloss.NewStyle().Foreground(lipgloss.Color("#66ff66")).
 						Render("[Log file path]"), variable.LogFile)
 					fmt.Printf("%-*s %s\n", 55, lipgloss.NewStyle().Foreground(lipgloss.Color("#ff9999")).
-						Render("[Configuration directory path]"), variable.SuperFileMainDir)
+						Render("[Configuration directory path]"), variable.HyperFileMainDir)
 					fmt.Printf("%-*s %s\n", 55, lipgloss.NewStyle().Foreground(lipgloss.Color("#ff66ff")).
-						Render("[Data directory path]"), variable.SuperFileDataDir)
+						Render("[Data directory path]"), variable.HyperFileDataDir)
 					return nil
 				},
 				Flags: []cli.Flag{
@@ -105,7 +105,7 @@ func Run(content embed.FS) {
 			&cli.StringFlag{
 				Name:    "chooser-file",
 				Aliases: []string{"cf"},
-				Usage:   "On trying to open any file, superfile will write to its path to this file, and exit",
+				Usage:   "On trying to open any file, hyperfile will write to its path to this file, and exit",
 				Value:   "", // Default to the blank string indicating non-usage of flag
 			},
 		},
@@ -160,9 +160,9 @@ func spfAppAction(_ context.Context, c *cli.Command) error {
 func InitConfigFile() {
 	// Create directories
 	if err := createDirectories(
-		variable.SuperFileMainDir,
-		variable.SuperFileDataDir,
-		variable.SuperFileStateDir,
+		variable.HyperFileMainDir,
+		variable.HyperFileDataDir,
+		variable.HyperFileStateDir,
 		variable.ThemeFolder,
 	); err != nil {
 		utils.PrintlnAndExit("Error creating directories:", err)

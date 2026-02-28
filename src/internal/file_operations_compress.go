@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yorukot/superfile/src/config/icon"
-	"github.com/yorukot/superfile/src/internal/ui/processbar"
+	"github.com/fsncps/hyperfile/src/config/icon"
+	"github.com/fsncps/hyperfile/src/internal/ui/processbar"
 )
 
 func zipSources(sources []string, target string, processBar *processbar.Model) error {

@@ -7,7 +7,7 @@ import (
 	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/yorukot/superfile/src/config/icon"
+	"github.com/fsncps/hyperfile/src/config/icon"
 )
 
 // Generate border style for file panel

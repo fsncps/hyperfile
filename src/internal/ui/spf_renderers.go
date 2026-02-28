@@ -4,8 +4,8 @@ import (
 	"log/slog"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/yorukot/superfile/src/internal/common"
-	"github.com/yorukot/superfile/src/internal/ui/rendering"
+	"github.com/fsncps/hyperfile/src/internal/common"
+	"github.com/fsncps/hyperfile/src/internal/ui/rendering"
 )
 
 func SidebarRenderer(totalHeight int, totalWidth int, sidebarFocussed bool) *rendering.Renderer {

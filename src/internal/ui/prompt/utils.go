@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/yorukot/superfile/src/internal/common"
+	"github.com/fsncps/hyperfile/src/internal/common"
 )
 
 func getPromptAction(shellMode bool, value string, cwdLocation string) (common.ModelAction, error) {

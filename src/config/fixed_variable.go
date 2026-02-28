@@ -4,19 +4,19 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/fsncps/hyperfile/src/internal/utils"
 	"github.com/urfave/cli/v3"
-	"github.com/yorukot/superfile/src/internal/utils"
 
 	"github.com/adrg/xdg"
 )
 
 const (
 	CurrentVersion      = "v1.3.3"
-	LatestVersionURL    = "https://api.github.com/repos/yorukot/superfile/releases/latest"
-	LatestVersionGithub = "github.com/yorukot/superfile/releases/latest"
+	LatestVersionURL    = "https://api.github.com/repos/fsncps/hyperfile/releases/latest"
+	LatestVersionGithub = "github.com/fsncps/hyperfile/releases/latest"
 
 	// This will not break in windows. This is a relative path for Embed FS. It uses "/" only
-	EmbedConfigDir           = "src/superfile_config"
+	EmbedConfigDir           = "src/hyperfile_config"
 	EmbedConfigFile          = EmbedConfigDir + "/config.toml"
 	EmbedHotkeysFile         = EmbedConfigDir + "/hotkeys.toml"
 	EmbedThemeDir            = EmbedConfigDir + "/theme"
@@ -25,25 +25,25 @@ const (
 
 var (
 	HomeDir           = xdg.Home
-	SuperFileMainDir  = filepath.Join(xdg.ConfigHome, "superfile")
-	SuperFileCacheDir = filepath.Join(xdg.CacheHome, "superfile")
-	SuperFileDataDir  = filepath.Join(xdg.DataHome, "superfile")
-	SuperFileStateDir = filepath.Join(xdg.StateHome, "superfile")
+	HyperFileMainDir  = filepath.Join(xdg.ConfigHome, "hyperfile")
+	HyperFileCacheDir = filepath.Join(xdg.CacheHome, "hyperfile")
+	HyperFileDataDir  = filepath.Join(xdg.DataHome, "hyperfile")
+	HyperFileStateDir = filepath.Join(xdg.StateHome, "hyperfile")
 
 	// MainDir files
-	ThemeFolder = filepath.Join(SuperFileMainDir, "theme")
+	ThemeFolder = filepath.Join(HyperFileMainDir, "theme")
 
 	// DataDir files
-	LastCheckVersion = filepath.Join(SuperFileDataDir, "lastCheckVersion")
-	ThemeFileVersion = filepath.Join(SuperFileDataDir, "themeFileVersion")
-	FirstUseCheck    = filepath.Join(SuperFileDataDir, "firstUseCheck")
-	PinnedFile       = filepath.Join(SuperFileDataDir, "pinned.json")
-	ToggleDotFile    = filepath.Join(SuperFileDataDir, "toggleDotFile")
-	ToggleFooter     = filepath.Join(SuperFileDataDir, "toggleFooter")
+	LastCheckVersion = filepath.Join(HyperFileDataDir, "lastCheckVersion")
+	ThemeFileVersion = filepath.Join(HyperFileDataDir, "themeFileVersion")
+	FirstUseCheck    = filepath.Join(HyperFileDataDir, "firstUseCheck")
+	PinnedFile       = filepath.Join(HyperFileDataDir, "pinned.json")
+	ToggleDotFile    = filepath.Join(HyperFileDataDir, "toggleDotFile")
+	ToggleFooter     = filepath.Join(HyperFileDataDir, "toggleFooter")
 
 	// StateDir files
-	LogFile     = filepath.Join(SuperFileStateDir, "superfile.log")
-	LastDirFile = filepath.Join(SuperFileStateDir, "lastdir")
+	LogFile     = filepath.Join(HyperFileStateDir, "hyperfile.log")
+	LastDirFile = filepath.Join(HyperFileStateDir, "lastdir")
 
 	// Trash Directories
 	DarwinTrashDirectory      = filepath.Join(HomeDir, ".Trash")
@@ -54,10 +54,10 @@ var (
 
 // These variables are actually not fixed, they are sometimes updated dynamically
 var (
-	ConfigFile  = filepath.Join(SuperFileMainDir, "config.toml")
-	HotkeysFile = filepath.Join(SuperFileMainDir, "hotkeys.toml")
+	ConfigFile  = filepath.Join(HyperFileMainDir, "config.toml")
+	HotkeysFile = filepath.Join(HyperFileMainDir, "hotkeys.toml")
 
-	// ChooserFile is the path where superfile will write the file's path, which is to be
+	// ChooserFile is the path where hyperfile will write the file's path, which is to be
 	// opened, before exiting
 	ChooserFile = ""
 

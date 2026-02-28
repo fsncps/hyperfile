@@ -11,11 +11,11 @@ import (
 	"runtime"
 
 	"github.com/charmbracelet/x/exp/term/ansi"
+	"github.com/fsncps/hyperfile/src/config/icon"
+	"github.com/fsncps/hyperfile/src/internal/utils"
 	"github.com/pelletier/go-toml/v2"
-	"github.com/yorukot/superfile/src/config/icon"
-	"github.com/yorukot/superfile/src/internal/utils"
 
-	variable "github.com/yorukot/superfile/src/config"
+	variable "github.com/fsncps/hyperfile/src/config"
 )
 
 // Load configurations from the configuration file. Compares the content
@@ -165,7 +165,7 @@ func LoadThemeFile() {
 	}
 }
 
-// LoadAllDefaultConfig : Load all default configurations from embedded superfile_config folder into global
+// LoadAllDefaultConfig : Load all default configurations from embedded hyperfile_config folder into global
 // configurations variables and write theme files if its needed.
 func LoadAllDefaultConfig(content embed.FS) {
 	err := LoadConfigStringGlobals(content)
@@ -276,9 +276,9 @@ func PopulateGlobalConfigs() error {
 	}
 
 	// This is src/internal/common/load_config.go
-	// we want src/superfile_config
+	// we want src/hyperfile_config
 	spfConfigDir := filepath.Join(filepath.Dir(filepath.Dir(filepath.Dir(filename))),
-		"superfile_config")
+		"hyperfile_config")
 
 	configFilePath := filepath.Join(spfConfigDir, "config.toml")
 	hotkeyFilePath := filepath.Join(spfConfigDir, "hotkeys.toml")

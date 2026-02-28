@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/fsncps/hyperfile/src/internal/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/yorukot/superfile/src/internal/common"
 )
 
 func TestCompressSelectedFiles(t *testing.T) {

@@ -3,11 +3,11 @@ package main
 import (
 	"embed"
 
-	"github.com/yorukot/superfile/src/cmd"
+	"github.com/fsncps/hyperfile/src/cmd"
 )
 
 var (
-	//go:embed src/superfile_config/*
+	//go:embed src/hyperfile_config/*
 	content embed.FS
 )
 

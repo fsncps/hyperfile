@@ -10,11 +10,11 @@ import (
 
 	"github.com/adrg/xdg"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/fsncps/hyperfile/src/internal/common"
+	"github.com/fsncps/hyperfile/src/internal/ui/prompt"
+	"github.com/fsncps/hyperfile/src/internal/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/yorukot/superfile/src/internal/common"
-	"github.com/yorukot/superfile/src/internal/ui/prompt"
-	"github.com/yorukot/superfile/src/internal/utils"
 )
 
 func TestModel_Update_Prompt(t *testing.T) {

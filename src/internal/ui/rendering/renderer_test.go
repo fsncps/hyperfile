@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/fsncps/hyperfile/src/internal/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/yorukot/superfile/src/internal/utils"
 )
 
 const (

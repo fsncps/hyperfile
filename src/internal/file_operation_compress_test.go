@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fsncps/hyperfile/src/internal/ui/processbar"
 	"github.com/stretchr/testify/require"
-	"github.com/yorukot/superfile/src/internal/ui/processbar"
 )
 
 func TestZipSources(t *testing.T) {

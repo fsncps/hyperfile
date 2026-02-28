@@ -3,13 +3,13 @@ package internal
 import (
 	"path/filepath"
 
-	"github.com/yorukot/superfile/src/internal/ui/metadata"
-	"github.com/yorukot/superfile/src/internal/ui/processbar"
-	"github.com/yorukot/superfile/src/internal/ui/sidebar"
-	filepreview "github.com/yorukot/superfile/src/pkg/file_preview"
+	"github.com/fsncps/hyperfile/src/internal/ui/metadata"
+	"github.com/fsncps/hyperfile/src/internal/ui/processbar"
+	"github.com/fsncps/hyperfile/src/internal/ui/sidebar"
+	filepreview "github.com/fsncps/hyperfile/src/pkg/file_preview"
 
-	"github.com/yorukot/superfile/src/internal/common"
-	"github.com/yorukot/superfile/src/internal/ui/prompt"
+	"github.com/fsncps/hyperfile/src/internal/common"
+	"github.com/fsncps/hyperfile/src/internal/ui/prompt"
 )
 
 // Generate and return model containing default configurations for interface

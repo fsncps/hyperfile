@@ -4,8 +4,8 @@ import (
 	"time"
 
 	"github.com/charmbracelet/bubbles/progress"
-	"github.com/yorukot/superfile/src/config/icon"
-	"github.com/yorukot/superfile/src/internal/common"
+	"github.com/fsncps/hyperfile/src/config/icon"
+	"github.com/fsncps/hyperfile/src/internal/common"
 )
 
 // Model for an individual process

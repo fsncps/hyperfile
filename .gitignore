@@ -30,5 +30,17 @@ venv/
 testsuite/venv/
 testsuite/.venv/
 
+# Python bytecode (testsuite)
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Go test binaries
+*.test
+
+# Editor configs
+.vscode/
+
 # macOS-specific files
 .DS_Store

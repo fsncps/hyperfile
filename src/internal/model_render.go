@@ -20,17 +20,17 @@ import (
 	"golang.org/x/text/encoding/unicode"
 	"golang.org/x/text/transform"
 
-	"github.com/yorukot/superfile/src/internal/ui"
-	"github.com/yorukot/superfile/src/internal/ui/rendering"
+	"github.com/fsncps/hyperfile/src/internal/ui"
+	"github.com/fsncps/hyperfile/src/internal/ui/rendering"
 
-	"github.com/yorukot/superfile/src/internal/common"
-	"github.com/yorukot/superfile/src/internal/utils"
+	"github.com/fsncps/hyperfile/src/internal/common"
+	"github.com/fsncps/hyperfile/src/internal/utils"
 
 	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/exp/term/ansi"
+	"github.com/fsncps/hyperfile/src/config/icon"
 	"github.com/yorukot/ansichroma"
-	"github.com/yorukot/superfile/src/config/icon"
 )
 
 func (m *model) sidebarRender() string {
@@ -320,7 +320,7 @@ func (m *model) introduceModalRender() string {
 	subFour := common.SidebarTitleStyle.Render("  (4)") +
 		common.ModalStyle.Render(" Thank you again for using superfile.\n"+
 			"      If you have any questions, please feel free to ask at:\n"+
-			"      https://github.com/yorukot/superfile\n"+
+			"      https://github.com/fsncps/hyperfile\n"+
 			"      Of course, you can always open a new issue to share your idea \n"+
 			"      or report a bug!")
 	return common.FirstUseModal(m.helpMenu.height, m.helpMenu.width).

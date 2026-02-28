@@ -11,19 +11,19 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yorukot/superfile/src/config/icon"
-	"github.com/yorukot/superfile/src/internal/common"
-	"github.com/yorukot/superfile/src/internal/ui/metadata"
-	"github.com/yorukot/superfile/src/internal/ui/notify"
-	"github.com/yorukot/superfile/src/internal/utils"
+	"github.com/fsncps/hyperfile/src/config/icon"
+	"github.com/fsncps/hyperfile/src/internal/common"
+	"github.com/fsncps/hyperfile/src/internal/ui/metadata"
+	"github.com/fsncps/hyperfile/src/internal/ui/notify"
+	"github.com/fsncps/hyperfile/src/internal/utils"
 
 	"github.com/barasher/go-exiftool"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
-	variable "github.com/yorukot/superfile/src/config"
-	stringfunction "github.com/yorukot/superfile/src/pkg/string_function"
+	variable "github.com/fsncps/hyperfile/src/config"
+	stringfunction "github.com/fsncps/hyperfile/src/pkg/string_function"
 )
 
 // These represent model's state information, its not a global preperty

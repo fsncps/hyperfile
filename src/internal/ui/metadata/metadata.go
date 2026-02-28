@@ -8,8 +8,8 @@ import (
 	"sort"
 
 	"github.com/barasher/go-exiftool"
-	"github.com/yorukot/superfile/src/internal/common"
-	"github.com/yorukot/superfile/src/internal/utils"
+	"github.com/fsncps/hyperfile/src/internal/common"
+	"github.com/fsncps/hyperfile/src/internal/utils"
 )
 
 type Metadata struct {

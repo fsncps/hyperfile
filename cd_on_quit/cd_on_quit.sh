@@ -1,20 +1,20 @@
-spf() {
+hpf() {
     os=$(uname -s)
 
     # Linux
     if [[ "$os" == "Linux" ]]; then
-        export SPF_LAST_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/superfile/lastdir"
+        export HPF_LAST_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/hyperfile/lastdir"
     fi
 
     # macOS
     if [[ "$os" == "Darwin" ]]; then
-        export SPF_LAST_DIR="$HOME/Library/Application Support/superfile/lastdir"
+        export HPF_LAST_DIR="$HOME/Library/Application Support/hyperfile/lastdir"
     fi
 
-    command spf "$@"
+    command hpf "$@"
 
-    [ ! -f "$SPF_LAST_DIR" ] || {
-        . "$SPF_LAST_DIR"
-        rm -f -- "$SPF_LAST_DIR" > /dev/null
+    [ ! -f "$HPF_LAST_DIR" ] || {
+        . "$HPF_LAST_DIR"
+        rm -f -- "$HPF_LAST_DIR" > /dev/null
     }
 }

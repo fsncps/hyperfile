@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/yorukot/superfile/src/internal/utils"
+	"github.com/fsncps/hyperfile/src/internal/utils"
 )
 
 func (panel *filePanel) getSelectedItem() element {

@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/yorukot/superfile/src/config/icon"
+	"github.com/fsncps/hyperfile/src/config/icon"
 )
 
 const WheelRunTime = 5

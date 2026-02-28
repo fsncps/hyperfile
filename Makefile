@@ -1,4 +1,4 @@
-.PHONY: all build test lint clean dev testsuite help
+.PHONY: all build test lint clean dev testsuite install help
 
 # Default target
 all: dev
@@ -23,6 +23,10 @@ lint:
 testsuite:
 	@FORCE_COLOR=1 ./dev.sh --testsuite
 
+# Install binary to ~/.local/bin
+install: build
+	@cp ./bin/hpf ~/.local/bin/hpf
+
 # Clean build artifacts
 clean:
 	@rm -rf ./bin/
@@ -36,6 +40,7 @@ help:
 	@echo "  test      - Run unit tests only"
 	@echo "  lint      - Run linter only"
 	@echo "  testsuite - Run full testsuite"
+	@echo "  install   - Build and install hpf to ~/.local/bin"
 	@echo "  clean     - Clean build artifacts"
 	@echo "  help      - Show this help"
 	@echo ""
