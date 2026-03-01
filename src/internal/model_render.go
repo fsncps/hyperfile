@@ -38,39 +38,22 @@ func (m *model) sidebarRender() string {
 		m.fileModel.filePanels[m.filePanelFocusIndex].location)
 }
 
-// This also modifies the m.fileModel.filePanels, which it should not
-// what modifications we do on this model object are of no consequence.
-// Since bubblea passed this 'model' by value in View() function.
+// filePanelRender renders only the first file panel (the folder panel) in the
+// new 3-panel layout. The folder panel uses m.fileModel.width as its inner width.
 func (m *model) filePanelRender() string {
-	f := make([]string, len(m.fileModel.filePanels))
-	for i, filePanel := range m.fileModel.filePanels {
-		// check if cursor or render out of range
-		// TODO - instead of this, have a filepanel.validateAndFix(), and log Error
-		// This should not ever happen
-		if filePanel.cursor > len(filePanel.element)-1 {
-			filePanel.cursor = 0
-			filePanel.render = 0
-		}
-		m.fileModel.filePanels[i] = filePanel
-
-		// TODO : Move this to a utility function and clarify the calculation via comments
-		// Maybe even write unit tests
-		var filePanelWidth int
-		if (m.fullWidth-common.Config.SidebarWidth-(4+(len(m.fileModel.filePanels)-1)*2))%len(m.fileModel.filePanels) != 0 &&
-			i == len(m.fileModel.filePanels)-1 {
-			if m.fileModel.filePreview.open {
-				filePanelWidth = m.fileModel.width
-			} else {
-				filePanelWidth = (m.fileModel.width + (m.fullWidth-common.Config.SidebarWidth-
-					(4+(len(m.fileModel.filePanels)-1)*2))%len(m.fileModel.filePanels))
-			}
-		} else {
-			filePanelWidth = m.fileModel.width
-		}
-
-		f[i] = filePanel.Render(m.mainPanelHeight, filePanelWidth, filePanel.focusType != noneFocus)
+	if len(m.fileModel.filePanels) == 0 {
+		return ""
 	}
-	return lipgloss.JoinHorizontal(lipgloss.Top, f...)
+	panel := m.fileModel.filePanels[0]
+	// Validate cursor bounds
+	if panel.cursor > len(panel.element)-1 {
+		panel.cursor = 0
+		panel.render = 0
+	}
+	m.fileModel.filePanels[0] = panel
+
+	focused := panel.focusType != noneFocus
+	return panel.Render(m.mainPanelHeight, m.fileModel.width, focused)
 }
 
 func (panel *filePanel) Render(mainPanelHeight int, filePanelWidth int, focussed bool) string {
@@ -469,10 +452,19 @@ func readFileContent(filepath string, maxLineLength int, previewLine int) (strin
 }
 
 func (m *model) filePreviewPanelRender() string {
-	// TODO : This width adjustment must not be done inside render function. It should
-	// only be triggered via Update()
-	m.fileModel.filePreview.width += m.fullWidth - common.Config.SidebarWidth - m.fileModel.filePreview.width -
-		((m.fileModel.width + 2) * len(m.fileModel.filePanels)) - 2
+	// Recompute preview width to exactly fill remaining horizontal space.
+	// This corrects for integer-division rounding in recalcPanelWidths().
+	used := common.Config.SidebarWidth + 2 // sidebar outer width
+	if m.folderPanelOpen {
+		used += m.fileModel.width + 2
+	}
+	if m.treePanel.open {
+		used += m.treePanel.width + 2
+	}
+	m.fileModel.filePreview.width = m.fullWidth - used
+	if m.fileModel.filePreview.width < 4 {
+		m.fileModel.filePreview.width = 4
+	}
 
 	return m.filePreviewPanelRenderWithDimensions(m.mainPanelHeight+2, m.fileModel.filePreview.width)
 }
@@ -616,25 +608,31 @@ func (m *model) renderTextPreview(r *rendering.Renderer, box lipgloss.Style, ite
 	return r.Render()
 }
 
+// getPreviewItemPath returns the filesystem path for the item that should be
+// displayed in the preview panel. When the tree panel is focused the tree
+// cursor takes priority; otherwise the folder panel cursor is used.
+func (m *model) getPreviewItemPath() string {
+	if m.activeFileArea == treePanelActive && m.treePanel.open {
+		if node := m.treePanel.GetSelectedNode(); node != nil {
+			return node.path
+		}
+	}
+	panel := m.fileModel.filePanels[0]
+	if len(panel.element) == 0 || panel.cursor >= len(panel.element) {
+		return ""
+	}
+	return panel.element[panel.cursor].location
+}
+
 func (m *model) filePreviewPanelRenderWithDimensions(previewHeight int, previewWidth int) string {
-	panel := m.fileModel.filePanels[m.filePanelFocusIndex]
 	box := common.FilePreviewBox(previewHeight, previewWidth)
 	r := ui.FilePreviewPanelRenderer(previewHeight, previewWidth)
 	clearCmd := m.imagePreviewer.ClearKittyImages()
-	if len(panel.element) == 0 {
+
+	itemPath := m.getPreviewItemPath()
+	if itemPath == "" {
 		return m.renderEmptyFilePreview(r) + clearCmd
 	}
-
-	// This could create errors if panel.cursor ever becomes negative, or goes out of bounds
-	// We should have a panel validation function in our View() function
-	// Panel is a full fledged object with own state, its accessed and modified so many times.
-	// Ideally we dont should never access data from it via directly accessing its variables
-	// TODO : Instead we should have helper functions for panel object and access data that way
-	// like panel.GetCurrentSelectedElem() . This abstration of implemetation of panel is needed.
-	// Now this lack of abstraction has caused issues ( See PR#730 ) . And now
-	// someone needs to scan through the entire codebase to figure out which access of panel
-	// data is causing crash.
-	itemPath := panel.element[panel.cursor].location
 	fileInfo, infoErr := os.Stat(itemPath)
 	if infoErr != nil {
 		return m.renderFileInfoError(r, box, infoErr) + clearCmd

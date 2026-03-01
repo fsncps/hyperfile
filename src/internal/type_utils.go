@@ -65,6 +65,7 @@ func defaultFilePanel(dir string) filePanel {
 		focusType:        focus,
 		directoryRecords: make(map[string]directoryRecord),
 		searchBar:        common.GenerateSearchBar(),
+		// dirOnly is not set here; callers set it explicitly for the folder panel
 	}
 }
 

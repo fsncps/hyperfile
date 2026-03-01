@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Superfile** (binary: `spf`) is a modern terminal file manager written in Go, using the [Bubble Tea](https://github.com/charmbracelet/bubbletea) TUI framework.
+**Hyperfile** (binary: `hpf`) is a terminal file manager written in Go, using the [Bubble Tea](https://github.com/charmbracelet/bubbletea) TUI framework. It uses a fixed 3-panel layout: a directory-only folder panel, a tree panel, and a file preview panel.
 
 ## Common Commands
 
@@ -13,8 +13,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 make dev           # or: ./dev.sh
 
 # Individual steps
-make build         # Build only (skips tests); output: ./bin/hpf
+make build         # Build only; output: ./bin/hpf
 make test          # Run unit tests: go test ./...
+make install       # Build and install to ~/.local/bin/hpf
 make lint          # Run golangci-lint
 make testsuite     # Integration tests (requires Python + tmux)
 make clean         # Remove ./bin/
@@ -42,36 +43,49 @@ python testsuite/main.py -d               # Debug mode
   - **`backend/`** — OS-level file operations (no UI imports); uses interfaces for testability
   - **`common/`** — Shared types: config structs, theme/style helpers
   - **`ui/`** — Bubble Tea sub-models: `notify/`, `prompt/`, `processbar/`, `metadata/`, `sidebar/`, `rendering/`
-  - **`model.go`** — Central Bubble Tea model and main `Update` loop
-  - **`model_render.go`** — `View()` rendering logic
-  - **`key_function.go`** — Hotkey dispatch
+  - **`model.go`** — Central Bubble Tea model and main `Update` loop; `recalcPanelWidths()` controls all panel widths
+  - **`model_render.go`** — `View()` rendering; `getPreviewItemPath()` determines what the preview shows
+  - **`key_function.go`** — Hotkey dispatch; `mainKey()` routes to tree panel or folder panel based on `activeFileArea`
+  - **`tree_panel.go`** — Tree panel state and logic (`treePanelModel`, `buildTreeNodes`, expand/collapse)
+  - **`tree_panel_render.go`** — Tree panel rendering
+  - **`handle_tree_panel.go`** — Tree panel key handlers; `setTreePanelActive()` / `setFolderPanelActive()`
   - **`file_operations.go`** — High-level file I/O (copy, paste, delete, compress, extract)
 - **`src/pkg/`** — Independent packages: `file_preview/` (image/text rendering), `string_function/`
-- **`src/superfile_config/`** — Embedded default configs (TOML) for config, hotkeys, and themes
-- **`testsuite/`** — Python integration tests using `libtmux` to drive the TUI
+- **`src/hyperfile_config/`** — Embedded default configs (TOML) for config, hotkeys, and themes
 
 ### Key Architecture Patterns
 
-**Bubble Tea MVC:** The app follows strict Bubble Tea conventions. `model.go` holds all state. Messages flow through `Update()`, rendering is in `View()`. Sub-panels (sidebar, processbar, prompt, metadata) are nested structs with their own `Update`/`View` methods.
+**Bubble Tea MVC:** `model.go` holds all state. Messages flow through `Update()`, rendering is in `View()`. Sub-panels (sidebar, processbar, prompt, metadata) are nested structs.
+
+**3-Panel Layout:** `fileModel.filePanels[0]` is always the folder panel (left, `dirOnly: true` — directories only). `treePanelModel` is the middle panel, rooted at whatever directory the folder panel cursor sits on (synced via `syncTreeRoot()` in `updateModelStateAfterMsg`). Width split: folder ≈ 20%, preview ≈ 35%, tree gets the rest, computed in `recalcPanelWidths()`. Focus switches between panels with `activeFileArea` (`folderPanelActive` | `treePanelActive`).
 
 **Backend Interface:** The `backend` package exposes interfaces so unit tests can test file-operation logic without real filesystem calls. UI code imports `backend`; `backend` never imports UI.
 
-**Embedded Defaults:** Default configs/themes are embedded at compile time via Go's `embed` directive in `src/superfile_config/`. User configs at `~/.config/superfile/` override them.
+**Embedded Defaults:** Default configs/themes are embedded at compile time via Go's `embed` directive in `src/hyperfile_config/`. User configs at `~/.config/hyperfile/` override them.
 
-**Process Bar:** Background operations (copy, compress, extract) run in goroutines and post progress updates as Bubble Tea `Cmd` messages, displayed in the process bar panel.
+**Process Bar:** Background operations (copy, compress, extract) run in goroutines and post progress updates as Bubble Tea `Cmd` messages.
+
+**Hotkeys:** `common.Hotkeys.Confirm` = `['right']` (navigation confirm). `common.Hotkeys.ConfirmTyping` = `['enter']` (modal/typing confirm). These are intentionally separate — don't conflate them.
 
 ### Configuration Paths (runtime)
 
 | Purpose | Path |
 |---|---|
-| Config file | `~/.config/superfile/config.toml` |
-| Hotkeys | `~/.config/superfile/hotkeys.toml` |
-| Log file | `~/.local/state/superfile/superfile.log` |
-| Data directory | `~/.local/share/superfile/` |
+| Config file | `~/.config/hyperfile/config.toml` |
+| Hotkeys | `~/.config/hyperfile/hotkeys.toml` |
+| Log file | `~/.local/state/hyperfile/hyperfile.log` |
+| Data directory | `~/.local/share/hyperfile/` |
+
+### Testing Notes
+
+- `defaultTestModel()` in `test_utils.go` overrides `dirOnly=false` for all panels so existing tests that navigate to files still work.
+- `createNewFilePanel()` and `closeFilePanel()` are kept for test compatibility (no keyboard shortcuts expose them in the real app).
+- `NewTestTeaProgWithEventLoop` runs a real Bubble Tea event loop in a goroutine; use `assert.Eventually` for async effects. `SendKeyDirectly` bypasses the event loop and calls `Update()` directly — useful for setup, but the model inside `prog` and `p.m` can diverge if used after the loop has started.
+- Pre-existing failures in CI: `ui/metadata` (exiftool not installed), `ui/prompt/TestModel_HandleUpdate` (unrelated regression).
 
 ## Linting
 
-golangci-lint is configured in `.golangci.yaml`. Active complexity linters include `cyclop`, `funlen`, `gocognit`, `gocyclo`, and `lll` (line length). New functions should be kept short and focused to stay within these limits.
+golangci-lint is configured in `.golangci.yaml`. Active complexity linters: `cyclop`, `funlen`, `gocognit`, `gocyclo`, `lll`. Keep new functions short. Add `//nolint: gocyclo,cyclop,funlen // <reason>` only on functions that are inherently large dispatch switches.
 
 ## PR Standards
 

@@ -18,7 +18,34 @@ import (
 // TODO: This function has grown too big. It needs to be fixed, via major
 // updates and fixes in key handling code
 func (m *model) mainKey(msg string) tea.Cmd { //nolint: gocyclo,cyclop,funlen // See above
+	// Route all input to tree panel handler when tree panel has focus
+	if m.focusPanel == nonePanelFocus && m.activeFileArea == treePanelActive {
+		return m.handleTreePanelKey(msg)
+	}
+
 	switch {
+	// Hard-coded panel visibility and focus toggles
+	case msg == "alt+1":
+		m.toggleFolderPanel()
+		return nil
+	case msg == "alt+2":
+		m.toggleTreePanel()
+		return nil
+	case msg == "tab" && m.focusPanel == nonePanelFocus:
+		// Switch focus between folder and tree panels
+		if m.treePanel.open {
+			m.setTreePanelActive()
+		}
+		return nil
+	case msg == "ctrl+=" || msg == "ctrl++":
+		m.treePanel.ChangeDepth(+1)
+		m.syncTreeHiddenState()
+		return nil
+	case msg == "ctrl+-":
+		m.treePanel.ChangeDepth(-1)
+		m.syncTreeHiddenState()
+		return nil
+
 	// If move up Key is pressed, check the current state and executes
 	case slices.Contains(common.Hotkeys.ListUp, msg):
 		switch m.focusPanel {
@@ -216,7 +243,7 @@ func (m *model) typingModalOpenKey(msg string) {
 
 func (m *model) notifyModelOpenKey(msg string) tea.Cmd {
 	isCancel := slices.Contains(common.Hotkeys.CancelTyping, msg) || slices.Contains(common.Hotkeys.Quit, msg)
-	isConfirm := slices.Contains(common.Hotkeys.Confirm, msg)
+	isConfirm := slices.Contains(common.Hotkeys.Confirm, msg) || slices.Contains(common.Hotkeys.ConfirmTyping, msg)
 
 	if !isCancel && !isConfirm {
 		slog.Warn("Invalid keypress in notifyModel", "msg", msg)

@@ -116,6 +116,7 @@ func (m *model) handleMouseMsg(msg tea.MouseMsg) {
 func (m *model) updateModelStateAfterMsg() {
 	m.sidebarModel.UpdateDirectories()
 	m.getFilePanelItems()
+	m.syncTreeRoot()
 	// TODO: Move to utility
 	if m.focusPanel != metadataFocus {
 		m.fileMetaData.ResetRender()
@@ -124,6 +125,20 @@ func (m *model) updateModelStateAfterMsg() {
 	// Init() should return a basic model object with all IO waiting via a tea.Cmd
 	if !m.firstLoadingComplete {
 		m.firstLoadingComplete = true
+	}
+}
+
+// syncTreeRoot syncs the tree panel root to the current folder panel selection.
+// Always uses panel[0] (the folder panel) regardless of filePanelFocusIndex.
+func (m *model) syncTreeRoot() {
+	if len(m.fileModel.filePanels) == 0 {
+		return
+	}
+	fp := m.fileModel.filePanels[0]
+	if len(fp.element) > 0 && fp.cursor >= 0 && fp.cursor < len(fp.element) {
+		m.treePanel.SetRoot(fp.element[fp.cursor].location)
+	} else {
+		m.treePanel.SetRoot(fp.location)
 	}
 }
 
@@ -172,20 +187,51 @@ func (m *model) handleWindowResize(msg tea.WindowSizeMsg) {
 	m.fullHeight = msg.Height
 	m.fullWidth = msg.Width
 
-	if m.fileModel.filePreview.open {
-		// File preview panel width same as file panel
-		m.setFilePreviewWidth(msg.Width)
-	}
-
-	m.setFilePanelsSize(msg.Width)
+	m.recalcPanelWidths()
 	m.setHeightValues(msg.Height)
 	m.setHelpMenuSize()
 	m.setMetadataModelSize()
 	m.setProcessBarModelSize()
 	m.setPromptModelSize()
+}
 
-	if m.fileModel.maxFilePanel >= 10 {
-		m.fileModel.maxFilePanel = 10
+// recalcPanelWidths recomputes widths for folder, tree, and preview panels
+// based on current toggle state and terminal width.
+func (m *model) recalcPanelWidths() {
+	// sidebarWidth in Config is inner width; rendered sidebar is sidebarWidth+2
+	remaining := m.fullWidth - common.Config.SidebarWidth - 2
+
+	folderOuter := 0
+	if m.folderPanelOpen {
+		folderOuter = max(22, remaining*20/100)
+	}
+
+	previewOuter := 0
+	if m.fileModel.filePreview.open {
+		previewOuter = max(22, remaining*35/100)
+	}
+
+	treeOuter := 0
+	if m.treePanel.open {
+		treeOuter = remaining - folderOuter - previewOuter
+		if treeOuter < 22 {
+			treeOuter = 22
+		}
+	}
+
+	m.fileModel.width = max(0, folderOuter-2)
+	m.treePanel.width = max(0, treeOuter-2)
+	m.fileModel.filePreview.width = previewOuter
+
+	// Keep maxFilePanel dynamic so createNewFilePanel still works in tests
+	m.fileModel.maxFilePanel = (m.fullWidth - common.Config.SidebarWidth) / 20
+	if m.fileModel.maxFilePanel < 1 {
+		m.fileModel.maxFilePanel = 1
+	}
+
+	// Update search bar widths
+	for i := range m.fileModel.filePanels {
+		m.fileModel.filePanels[i].searchBar.Width = max(4, m.fileModel.width-4)
 	}
 }
 
@@ -471,14 +517,31 @@ func (m *model) View() string {
 
 	sidebar := m.sidebarRender()
 
-	filePanel := m.filePanelRender()
+	// Build 3-panel layout: sidebar | folder | tree | preview (each optional)
+	parts := []string{sidebar}
 
-	filePreview := m.filePreviewPanelRender()
+	filePanel := ""
+	if m.folderPanelOpen {
+		filePanel = m.filePanelRender()
+		parts = append(parts, filePanel)
+	}
 
-	mainPanel := lipgloss.JoinHorizontal(0, sidebar, filePanel, filePreview)
+	treePanelStr := ""
+	if m.treePanel.open {
+		treePanelStr = m.treePanelRender()
+		parts = append(parts, treePanelStr)
+	}
+
+	filePreview := ""
+	if m.fileModel.filePreview.open {
+		filePreview = m.filePreviewPanelRender()
+		parts = append(parts, filePreview)
+	}
+
+	mainPanel := lipgloss.JoinHorizontal(0, parts...)
 
 	if common.Config.Debug {
-		showRenderDebugStatsMain(sidebar, filePanel, filePreview)
+		showRenderDebugStatsMain(sidebar, filePanel, treePanelStr)
 	}
 
 	var footer string
@@ -624,6 +687,18 @@ func (m *model) getFilePanelItems() {
 		} else {
 			fileElement = returnDirElement(filePanel.location, m.toggleDotFile, filePanel.sortOptions.data)
 		}
+
+		// Filter to directories only when dirOnly flag is set
+		if filePanel.dirOnly {
+			dirs := fileElement[:0]
+			for _, e := range fileElement {
+				if e.directory {
+					dirs = append(dirs, e)
+				}
+			}
+			fileElement = dirs
+		}
+
 		// Update file panel list
 		filePanel.element = fileElement
 		m.fileModel.filePanels[i].element = fileElement

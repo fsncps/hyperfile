@@ -74,7 +74,10 @@ type model struct {
 	fileModel       fileModel
 	sidebarModel    sidebar.Model
 	processBarModel processbar.Model
+	treePanel       treePanelModel
 	focusPanel      focusPanelType
+	activeFileArea  fileAreaFocus // which file-area panel (folder vs tree) has focus
+	folderPanelOpen bool          // whether the left folder panel is visible
 	copyItems       copyItems
 
 	// Modals
@@ -169,6 +172,7 @@ type filePanel struct {
 	renaming           bool
 	searchBar          textinput.Model
 	lastTimeGetElement time.Time
+	dirOnly            bool // when true, only directories are shown
 }
 
 // Sort options
