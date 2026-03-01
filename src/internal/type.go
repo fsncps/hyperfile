@@ -74,10 +74,9 @@ type model struct {
 	fileModel       fileModel
 	sidebarModel    sidebar.Model
 	processBarModel processbar.Model
-	treePanel       treePanelModel
+	treePanels      [2]treePanelModel // [0]=left tree, [1]=right tree
 	focusPanel      focusPanelType
-	activeFileArea  fileAreaFocus // which file-area panel (folder vs tree) has focus
-	folderPanelOpen bool          // whether the left folder panel is visible
+	activeFileArea  fileAreaFocus // which file-area panel has focus (tree1=0, tree2=1)
 	copyItems       copyItems
 
 	// Modals

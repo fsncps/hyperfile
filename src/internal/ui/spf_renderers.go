@@ -20,7 +20,7 @@ func SidebarRenderer(totalHeight int, totalWidth int, sidebarFocussed bool) *ren
 	if sidebarFocussed {
 		cfg.BorderFGColor = common.SidebarBorderActiveColor
 	}
-	cfg.Border = DefaultLipglossBorder()
+	cfg.Border = SidebarLipglossBorder()
 
 	r, err := rendering.NewRenderer(cfg)
 	if err != nil {
@@ -127,6 +127,14 @@ func ClipboardRenderer(totalHeight int, totalWidth int) *rendering.Renderer {
 	r := DefaultFooterRenderer(totalHeight, totalWidth, false)
 	r.SetBorderTitle("Clipboard")
 	return r
+}
+
+func SidebarLipglossBorder() lipgloss.Border {
+	return lipgloss.Border{
+		Top: "━", Bottom: "━", Left: "┃", Right: "┃",
+		TopLeft: "┏", TopRight: "┓", BottomLeft: "┗", BottomRight: "┛",
+		MiddleLeft: "┣", MiddleRight: "┫",
+	}
 }
 
 func DefaultLipglossBorder() lipgloss.Border {

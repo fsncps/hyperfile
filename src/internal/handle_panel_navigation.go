@@ -79,28 +79,53 @@ func (m *model) toggleFilePreviewPanel() {
 	m.recalcPanelWidths()
 }
 
-// toggleFolderPanel hides or shows the left folder panel (alt+1).
-func (m *model) toggleFolderPanel() {
-	m.folderPanelOpen = !m.folderPanelOpen
-	if !m.folderPanelOpen && m.activeFileArea == folderPanelActive {
-		// Switch focus to tree if it's open, otherwise nothing
-		if m.treePanel.open {
-			m.setTreePanelActive()
+// toggleTree1Panel hides or shows the left tree panel (alt+1).
+func (m *model) toggleTree1Panel() {
+	m.treePanels[0].open = !m.treePanels[0].open
+	if !m.treePanels[0].open && m.activeFileArea == tree1PanelActive {
+		if m.treePanels[1].open {
+			m.setTree2PanelActive()
 		}
 	}
 	m.recalcPanelWidths()
 }
 
-// toggleTreePanel hides or shows the middle tree panel (alt+2).
-func (m *model) toggleTreePanel() {
-	m.treePanel.open = !m.treePanel.open
-	if !m.treePanel.open && m.activeFileArea == treePanelActive {
-		// Switch focus to folder panel if it's open
-		if m.folderPanelOpen {
-			m.setFolderPanelActive()
+// toggleTree2Panel hides or shows the right tree panel (alt+2).
+func (m *model) toggleTree2Panel() {
+	m.treePanels[1].open = !m.treePanels[1].open
+	if !m.treePanels[1].open && m.activeFileArea == tree2PanelActive {
+		if m.treePanels[0].open {
+			m.setTree1PanelActive()
 		}
 	}
 	m.recalcPanelWidths()
+}
+
+// focusNextPanel moves keyboard focus one panel to the right.
+func (m *model) focusNextPanel() {
+	if m.focusPanel == sidebarFocus {
+		m.focusPanel = nonePanelFocus
+		if m.treePanels[0].open {
+			m.setTree1PanelActive()
+		} else {
+			m.setTree2PanelActive()
+		}
+		return
+	}
+	if m.focusPanel == nonePanelFocus && m.activeFileArea == tree1PanelActive && m.treePanels[1].open {
+		m.setTree2PanelActive()
+	}
+}
+
+// focusPreviousPanel moves keyboard focus one panel to the left.
+func (m *model) focusPreviousPanel() {
+	if m.focusPanel == nonePanelFocus {
+		if m.activeFileArea == tree2PanelActive && m.treePanels[0].open {
+			m.setTree1PanelActive()
+		} else {
+			m.focusOnSideBar()
+		}
+	}
 }
 
 // Focus on next file panel

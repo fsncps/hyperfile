@@ -18,32 +18,23 @@ import (
 // TODO: This function has grown too big. It needs to be fixed, via major
 // updates and fixes in key handling code
 func (m *model) mainKey(msg string) tea.Cmd { //nolint: gocyclo,cyclop,funlen // See above
-	// Route all input to tree panel handler when tree panel has focus
-	if m.focusPanel == nonePanelFocus && m.activeFileArea == treePanelActive {
-		return m.handleTreePanelKey(msg)
+	// Route all file-area input to the active tree panel handler
+	if m.focusPanel == nonePanelFocus {
+		return m.handleTreePanelKey(msg, int(m.activeFileArea))
 	}
 
 	switch {
-	// Hard-coded panel visibility and focus toggles
-	case msg == "alt+1":
-		m.toggleFolderPanel()
+	case msg == "ctrl+right":
+		m.focusNextPanel()
 		return nil
-	case msg == "alt+2":
-		m.toggleTreePanel()
+	case msg == "ctrl+left":
+		m.focusPreviousPanel()
 		return nil
-	case msg == "tab" && m.focusPanel == nonePanelFocus:
-		// Switch focus between folder and tree panels
-		if m.treePanel.open {
-			m.setTreePanelActive()
-		}
+	case msg == "ctrl+up":
+		m.focusOnProcessBar()
 		return nil
-	case msg == "ctrl+=" || msg == "ctrl++":
-		m.treePanel.ChangeDepth(+1)
-		m.syncTreeHiddenState()
-		return nil
-	case msg == "ctrl+-":
-		m.treePanel.ChangeDepth(-1)
-		m.syncTreeHiddenState()
+	case msg == "ctrl+down":
+		m.focusPanel = nonePanelFocus
 		return nil
 
 	// If move up Key is pressed, check the current state and executes

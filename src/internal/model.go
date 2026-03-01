@@ -116,7 +116,6 @@ func (m *model) handleMouseMsg(msg tea.MouseMsg) {
 func (m *model) updateModelStateAfterMsg() {
 	m.sidebarModel.UpdateDirectories()
 	m.getFilePanelItems()
-	m.syncTreeRoot()
 	// TODO: Move to utility
 	if m.focusPanel != metadataFocus {
 		m.fileMetaData.ResetRender()
@@ -125,20 +124,6 @@ func (m *model) updateModelStateAfterMsg() {
 	// Init() should return a basic model object with all IO waiting via a tea.Cmd
 	if !m.firstLoadingComplete {
 		m.firstLoadingComplete = true
-	}
-}
-
-// syncTreeRoot syncs the tree panel root to the current folder panel selection.
-// Always uses panel[0] (the folder panel) regardless of filePanelFocusIndex.
-func (m *model) syncTreeRoot() {
-	if len(m.fileModel.filePanels) == 0 {
-		return
-	}
-	fp := m.fileModel.filePanels[0]
-	if len(fp.element) > 0 && fp.cursor >= 0 && fp.cursor < len(fp.element) {
-		m.treePanel.SetRoot(fp.element[fp.cursor].location)
-	} else {
-		m.treePanel.SetRoot(fp.location)
 	}
 }
 
@@ -195,15 +180,15 @@ func (m *model) handleWindowResize(msg tea.WindowSizeMsg) {
 	m.setPromptModelSize()
 }
 
-// recalcPanelWidths recomputes widths for folder, tree, and preview panels
+// recalcPanelWidths recomputes widths for tree1, tree2, and preview panels
 // based on current toggle state and terminal width.
 func (m *model) recalcPanelWidths() {
 	// sidebarWidth in Config is inner width; rendered sidebar is sidebarWidth+2
 	remaining := m.fullWidth - common.Config.SidebarWidth - 2
 
-	folderOuter := 0
-	if m.folderPanelOpen {
-		folderOuter = max(22, remaining*20/100)
+	tree1Outer := 0
+	if m.treePanels[0].open {
+		tree1Outer = max(22, remaining*20/100)
 	}
 
 	previewOuter := 0
@@ -211,27 +196,22 @@ func (m *model) recalcPanelWidths() {
 		previewOuter = max(22, remaining*35/100)
 	}
 
-	treeOuter := 0
-	if m.treePanel.open {
-		treeOuter = remaining - folderOuter - previewOuter
-		if treeOuter < 22 {
-			treeOuter = 22
+	tree2Outer := 0
+	if m.treePanels[1].open {
+		tree2Outer = remaining - tree1Outer - previewOuter
+		if tree2Outer < 22 {
+			tree2Outer = 22
 		}
 	}
 
-	m.fileModel.width = max(0, folderOuter-2)
-	m.treePanel.width = max(0, treeOuter-2)
+	m.treePanels[0].width = max(0, tree1Outer-2)
+	m.treePanels[1].width = max(0, tree2Outer-2)
 	m.fileModel.filePreview.width = previewOuter
 
 	// Keep maxFilePanel dynamic so createNewFilePanel still works in tests
 	m.fileModel.maxFilePanel = (m.fullWidth - common.Config.SidebarWidth) / 20
 	if m.fileModel.maxFilePanel < 1 {
 		m.fileModel.maxFilePanel = 1
-	}
-
-	// Update search bar widths
-	for i := range m.fileModel.filePanels {
-		m.fileModel.filePanels[i].searchBar.Width = max(4, m.fileModel.width-4)
 	}
 }
 
@@ -507,29 +487,25 @@ func (m *model) View() string {
 	if m.fullHeight < common.MinimumHeight || m.fullWidth < common.MinimumWidth {
 		return m.terminalSizeWarnRender()
 	}
-	if m.fileModel.width < 18 {
-		return m.terminalSizeWarnAfterFirstRender()
-	}
-
 	if err := m.validateLayout(); err != nil {
 		slog.Error("Invalid layout", "error", err)
 	}
 
 	sidebar := m.sidebarRender()
 
-	// Build 3-panel layout: sidebar | folder | tree | preview (each optional)
+	// Build layout: sidebar | tree1 | tree2 | preview (each optional)
 	parts := []string{sidebar}
 
-	filePanel := ""
-	if m.folderPanelOpen {
-		filePanel = m.filePanelRender()
-		parts = append(parts, filePanel)
+	tree1Str := ""
+	if m.treePanels[0].open {
+		tree1Str = m.treePanelRender(0)
+		parts = append(parts, tree1Str)
 	}
 
-	treePanelStr := ""
-	if m.treePanel.open {
-		treePanelStr = m.treePanelRender()
-		parts = append(parts, treePanelStr)
+	tree2Str := ""
+	if m.treePanels[1].open {
+		tree2Str = m.treePanelRender(1)
+		parts = append(parts, tree2Str)
 	}
 
 	filePreview := ""
@@ -541,7 +517,7 @@ func (m *model) View() string {
 	mainPanel := lipgloss.JoinHorizontal(0, parts...)
 
 	if common.Config.Debug {
-		showRenderDebugStatsMain(sidebar, filePanel, treePanelStr)
+		showRenderDebugStatsMain(sidebar, tree1Str, tree2Str)
 	}
 
 	var footer string

@@ -455,11 +455,11 @@ func (m *model) filePreviewPanelRender() string {
 	// Recompute preview width to exactly fill remaining horizontal space.
 	// This corrects for integer-division rounding in recalcPanelWidths().
 	used := common.Config.SidebarWidth + 2 // sidebar outer width
-	if m.folderPanelOpen {
-		used += m.fileModel.width + 2
+	if m.treePanels[0].open {
+		used += m.treePanels[0].width + 2
 	}
-	if m.treePanel.open {
-		used += m.treePanel.width + 2
+	if m.treePanels[1].open {
+		used += m.treePanels[1].width + 2
 	}
 	m.fileModel.filePreview.width = m.fullWidth - used
 	if m.fileModel.filePreview.width < 4 {
@@ -609,20 +609,16 @@ func (m *model) renderTextPreview(r *rendering.Renderer, box lipgloss.Style, ite
 	return r.Render()
 }
 
-// getPreviewItemPath returns the filesystem path for the item that should be
-// displayed in the preview panel. When the tree panel is focused the tree
-// cursor takes priority; otherwise the folder panel cursor is used.
+// getPreviewItemPath returns the filesystem path of the currently selected node
+// in the active tree panel.
 func (m *model) getPreviewItemPath() string {
-	if m.activeFileArea == treePanelActive && m.treePanel.open {
-		if node := m.treePanel.GetSelectedNode(); node != nil {
+	tree := &m.treePanels[int(m.activeFileArea)]
+	if tree.open {
+		if node := tree.GetSelectedNode(); node != nil {
 			return node.path
 		}
 	}
-	panel := m.fileModel.filePanels[0]
-	if len(panel.element) == 0 || panel.cursor >= len(panel.element) {
-		return ""
-	}
-	return panel.element[panel.cursor].location
+	return ""
 }
 
 func (m *model) filePreviewPanelRenderWithDimensions(previewHeight int, previewWidth int) string {
@@ -634,6 +630,15 @@ func (m *model) filePreviewPanelRenderWithDimensions(previewHeight int, previewW
 	if itemPath == "" {
 		return m.renderEmptyFilePreview(r) + clearCmd
 	}
+
+	// Header: show item name when the panel is large enough to have useful content below it
+	if previewHeight > 10 && previewWidth > 10 {
+		name := filepath.Base(itemPath)
+		truncated := common.TruncateTextBeginning(name, previewWidth-6, "...")
+		r.AddLines(common.FilePanelTopDirectoryIcon + common.FilePanelTopPathStyle.Render(truncated))
+		r.AddSection()
+	}
+
 	fileInfo, infoErr := os.Stat(itemPath)
 	if infoErr != nil {
 		return m.renderFileInfoError(r, box, infoErr) + clearCmd

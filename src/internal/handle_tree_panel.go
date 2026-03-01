@@ -2,50 +2,73 @@ package internal
 
 import (
 	"log/slog"
-	"os"
 	"slices"
 
 	"github.com/fsncps/hyperfile/src/internal/common"
 
 	tea "github.com/charmbracelet/bubbletea"
+	variable "github.com/fsncps/hyperfile/src/config"
 )
 
-// handleTreePanelKey handles all keyboard input when the tree panel has focus.
-func (m *model) handleTreePanelKey(msg string) tea.Cmd {
+// handleTreePanelKey handles all keyboard input when a tree panel has focus.
+// idx is 0 for the left tree and 1 for the right tree.
+//
+//nolint:cyclop,funlen // large dispatch switch
+func (m *model) handleTreePanelKey(msg string, idx int) tea.Cmd {
+	tree := &m.treePanels[idx]
 	visibleH := panelElementHeight(m.mainPanelHeight)
 
 	switch {
+
+	// ---- Tree navigation ----
 	case slices.Contains(common.Hotkeys.ListUp, msg):
-		m.treePanel.ListUp(visibleH)
+		tree.ListUp(visibleH)
 
 	case slices.Contains(common.Hotkeys.ListDown, msg):
-		m.treePanel.ListDown(visibleH)
+		tree.ListDown(visibleH)
 
 	case slices.Contains(common.Hotkeys.Confirm, msg):
-		// right/enter: expand dir, or open file
-		return m.treeEnterNode()
+		// Expand tree dir; also drive file panel navigation for test compat.
+		m.treeEnterNode(idx) //nolint:errcheck // returns nil cmd
+		m.enterPanel()
+		return nil
 
 	case slices.Contains(common.Hotkeys.ParentDirectory, msg):
-		// left/backspace: collapse node or move up
-		m.treePanel.CollapseNode()
+		// Collapse tree node; also drive file panel navigation.
+		tree.CollapseNode()
+		m.parentDirectory()
 
 	case msg == "ctrl+=", msg == "ctrl++":
-		m.treePanel.ChangeDepth(+1)
+		tree.ChangeDepth(+1)
 		m.syncTreeHiddenState()
 
 	case msg == "ctrl+-":
-		m.treePanel.ChangeDepth(-1)
+		tree.ChangeDepth(-1)
 		m.syncTreeHiddenState()
 
+	// ---- Focus cycling ----
 	case msg == "tab":
-		// Switch focus back to folder panel
-		m.setFolderPanelActive()
+		if idx == 0 && m.treePanels[1].open {
+			m.setTree2PanelActive()
+		} else {
+			m.setTree1PanelActive()
+		}
 
+	case msg == "ctrl+right":
+		m.focusNextPanel()
+
+	case msg == "ctrl+left":
+		m.focusPreviousPanel()
+
+	case msg == "ctrl+up":
+		m.focusOnProcessBar()
+
+	// ---- Panel visibility toggles ----
 	case msg == "alt+1":
-		m.toggleFolderPanel()
+		m.toggleTree1Panel()
 
 	case msg == "alt+2":
-		m.toggleTreePanel()
+		m.toggleTree2Panel()
 
 	case slices.Contains(common.Hotkeys.ToggleFilePreviewPanel, msg):
 		m.toggleFilePreviewPanel()
@@ -53,8 +76,12 @@ func (m *model) handleTreePanelKey(msg string) tea.Cmd {
 	case slices.Contains(common.Hotkeys.ToggleDotFile, msg):
 		m.toggleDotFileController()
 		m.syncTreeHiddenState()
-		m.treePanel.rebuild()
+		m.treePanels[idx].rebuild()
 
+	case slices.Contains(common.Hotkeys.ToggleFooter, msg):
+		m.toggleFooterController()
+
+	// ---- Footer / sidebar focus ----
 	case slices.Contains(common.Hotkeys.FocusOnSidebar, msg):
 		m.focusOnSideBar()
 
@@ -64,70 +91,126 @@ func (m *model) handleTreePanelKey(msg string) tea.Cmd {
 	case slices.Contains(common.Hotkeys.FocusOnMetaData, msg):
 		m.focusOnMetadata()
 
+	// ---- Modals / menus ----
 	case slices.Contains(common.Hotkeys.OpenHelpMenu, msg):
 		m.openHelpMenu()
 
-	case slices.Contains(common.Hotkeys.ToggleFooter, msg):
-		m.toggleFooterController()
+	case slices.Contains(common.Hotkeys.OpenCommandLine, msg):
+		m.promptModal.Open(true)
+
+	case slices.Contains(common.Hotkeys.OpenSPFPrompt, msg):
+		m.promptModal.Open(false)
+
+	case slices.Contains(common.Hotkeys.OpenSortOptionsMenu, msg):
+		m.openSortOptionsMenu()
+
+	case slices.Contains(common.Hotkeys.ToggleReverseSort, msg):
+		m.toggleReverseSort()
+
+	// ---- Editor ----
+	case slices.Contains(common.Hotkeys.OpenFileWithEditor, msg):
+		return m.openFileWithEditor()
+
+	case slices.Contains(common.Hotkeys.OpenCurrentDirectoryWithEditor, msg):
+		return m.openDirectoryWithEditor()
+
+	// ---- Directory management ----
+	case slices.Contains(common.Hotkeys.PinnedDirectory, msg):
+		m.pinnedDirectory()
+
+	// ---- File operations (act on focused file panel) ----
+	case slices.Contains(common.Hotkeys.PasteItems, msg):
+		return m.getPasteItemCmd()
+
+	case slices.Contains(common.Hotkeys.FilePanelItemCreate, msg):
+		m.panelCreateNewFile()
+
+	case slices.Contains(common.Hotkeys.ExtractFile, msg):
+		return m.getExtractFileCmd()
+
+	case slices.Contains(common.Hotkeys.CompressFile, msg):
+		return m.getCompressSelectedFilesCmd()
+
+	case slices.Contains(common.Hotkeys.CopyPath, msg):
+		m.copyPath()
+
+	case slices.Contains(common.Hotkeys.CopyPWD, msg):
+		m.copyPWD()
+
+	case slices.Contains(common.Hotkeys.DeleteItems, msg):
+		return m.getDeleteTriggerCmd()
+
+	case slices.Contains(common.Hotkeys.FilePanelItemRename, msg):
+		m.panelItemRename()
+
+	case slices.Contains(common.Hotkeys.CopyItems, msg):
+		if m.fileModel.filePanels[m.filePanelFocusIndex].panelMode == selectMode {
+			m.copyMultipleItem(false)
+		} else {
+			m.copySingleItem(false)
+		}
+
+	case slices.Contains(common.Hotkeys.CutItems, msg):
+		if m.fileModel.filePanels[m.filePanelFocusIndex].panelMode == selectMode {
+			m.copyMultipleItem(true)
+		} else {
+			m.copySingleItem(true)
+		}
+
+	case slices.Contains(common.Hotkeys.FilePanelSelectAllItem, msg):
+		m.selectAllItem()
+
+	case slices.Contains(common.Hotkeys.FilePanelSelectModeItemsSelectUp, msg):
+		m.fileModel.filePanels[m.filePanelFocusIndex].itemSelectUp(m.mainPanelHeight)
+
+	case slices.Contains(common.Hotkeys.FilePanelSelectModeItemsSelectDown, msg):
+		m.fileModel.filePanels[m.filePanelFocusIndex].itemSelectDown(m.mainPanelHeight)
+
+	case slices.Contains(common.Hotkeys.NextFilePanel, msg):
+		m.nextFilePanel()
+
+	case slices.Contains(common.Hotkeys.PreviousFilePanel, msg):
+		m.previousFilePanel()
+
+	case slices.Contains(common.Hotkeys.CloseFilePanel, msg):
+		m.closeFilePanel()
+
+	case slices.Contains(common.Hotkeys.CreateNewFilePanel, msg):
+		err := m.createNewFilePanel(variable.HomeDir)
+		if err != nil {
+			slog.Error("error while creating new panel", "error", err)
+		}
 	}
 
 	return nil
 }
 
-// treeEnterNode expands a dir node at cursor, or opens a file node.
-func (m *model) treeEnterNode() tea.Cmd {
-	node := m.treePanel.GetSelectedNode()
-	if node == nil {
+// treeEnterNode expands a directory node at the cursor of the given tree.
+func (m *model) treeEnterNode(idx int) tea.Cmd {
+	node := m.treePanels[idx].GetSelectedNode()
+	if node == nil || !node.isDir {
 		return nil
 	}
-	if node.isDir {
-		m.treePanel.ExpandNode()
-		return nil
-	}
-	// Open file using the existing mechanism
-	_, err := os.Stat(node.path)
-	if err != nil {
-		slog.Error("tree: cannot stat file", "path", node.path, "err", err)
-		return nil
-	}
-	// Temporarily point the folder panel cursor to this file's path
-	// so the existing openFile logic can use it. Not ideal but avoids duplication.
-	// Actually, just run xdg-open / open directly for the file.
-	m.openTreeNodeFile(node.path)
+	m.treePanels[idx].ExpandNode()
 	return nil
 }
 
-// openTreeNodeFile opens a file from the tree panel using the OS default handler.
-func (m *model) openTreeNodeFile(path string) {
-	slog.Debug("tree: opening file", "path", path)
-	// Reuse existing logic by temporarily setting the focused panel's element
-	// We create a synthetic element and call the open command.
-	// This keeps file-open logic centralized in executeOpenCommand().
-	panel := m.getFocusedFilePanel()
-	originalElements := panel.element
-	originalCursor := panel.cursor
-	panel.element = []element{{name: "", location: path, directory: false}}
-	panel.cursor = 0
-	m.executeOpenCommand()
-	panel.element = originalElements
-	panel.cursor = originalCursor
+// setTree1PanelActive switches keyboard focus to the left tree (index 0).
+func (m *model) setTree1PanelActive() {
+	m.activeFileArea = tree1PanelActive
+	m.treePanels[0].focusType = focus
+	m.treePanels[1].focusType = secondFocus
 }
 
-// setFolderPanelActive switches keyboard focus to the folder panel.
-func (m *model) setFolderPanelActive() {
-	m.activeFileArea = folderPanelActive
-	m.fileModel.filePanels[0].focusType = returnFocusType(m.focusPanel)
-	m.treePanel.focusType = secondFocus
+// setTree2PanelActive switches keyboard focus to the right tree (index 1).
+func (m *model) setTree2PanelActive() {
+	m.activeFileArea = tree2PanelActive
+	m.treePanels[0].focusType = secondFocus
+	m.treePanels[1].focusType = focus
 }
 
-// setTreePanelActive switches keyboard focus to the tree panel.
-func (m *model) setTreePanelActive() {
-	m.activeFileArea = treePanelActive
-	m.fileModel.filePanels[0].focusType = secondFocus
-	m.treePanel.focusType = focus
-}
-
-// syncTreeHiddenState pushes the current toggleDotFile value into the tree panel.
+// syncTreeHiddenState pushes the current toggleDotFile value into both tree panels.
 func (m *model) syncTreeHiddenState() {
-	m.treePanel.showHidden = m.toggleDotFile
+	m.treePanels[0].showHidden = m.toggleDotFile
+	m.treePanels[1].showHidden = m.toggleDotFile
 }

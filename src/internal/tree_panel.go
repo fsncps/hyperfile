@@ -10,8 +10,8 @@ import (
 type fileAreaFocus int
 
 const (
-	folderPanelActive fileAreaFocus = iota
-	treePanelActive
+	tree1PanelActive fileAreaFocus = iota // left tree (index 0)
+	tree2PanelActive                      // right tree (index 1)
 )
 
 // treeNode is a single entry in the flattened visible tree list.

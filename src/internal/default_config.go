@@ -15,11 +15,8 @@ import (
 // Generate and return model containing default configurations for interface
 // Maybe we can replace slice of strings with var args - Should we ?
 func defaultModelConfig(toggleDotFile bool, toggleFooter bool, firstUse bool, firstFilePanelDirs []string) *model {
-	// Build file panels; the first (and only displayed) panel is dir-only
+	// Build file panels (kept for file-op infrastructure; not rendered directly)
 	panels := filePanelSlice(firstFilePanelDirs)
-	if len(panels) > 0 {
-		panels[0].dirOnly = true
-	}
 
 	// Use first panel's location as tree root, fallback to "/"
 	treeRoot := "/"
@@ -27,18 +24,19 @@ func defaultModelConfig(toggleDotFile bool, toggleFooter bool, firstUse bool, fi
 		treeRoot = firstFilePanelDirs[0]
 	}
 
-	tp := defaultTreePanel(treeRoot)
-	tp.showHidden = toggleDotFile
+	tp0 := defaultTreePanel(treeRoot)
+	tp0.showHidden = toggleDotFile
+	tp1 := defaultTreePanel(treeRoot)
+	tp1.showHidden = toggleDotFile
 
 	return &model{
 		filePanelFocusIndex: 0,
 		focusPanel:          nonePanelFocus,
-		activeFileArea:      folderPanelActive,
-		folderPanelOpen:     true,
+		activeFileArea:      tree1PanelActive,
 		processBarModel:     processbar.New(),
 		sidebarModel:        sidebar.New(),
 		fileMetaData:        metadata.New(),
-		treePanel:           tp,
+		treePanels:          [2]treePanelModel{tp0, tp1},
 		fileModel: fileModel{
 			filePanels: panels,
 			filePreview: filePreviewPanel{

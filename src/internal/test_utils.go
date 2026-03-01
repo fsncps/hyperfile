@@ -43,11 +43,6 @@ func setupFiles(t *testing.T, files ...string) {
 func defaultTestModel(dirs ...string) *model {
 	m := defaultModelConfig(false, false, false, dirs)
 	m.disableMetatdata = true
-	// In tests we show all file types in the folder panel (not dir-only) so that
-	// existing tests that navigate to files continue to work.
-	for i := range m.fileModel.filePanels {
-		m.fileModel.filePanels[i].dirOnly = false
-	}
 	_, _ = TeaUpdate(m, tea.WindowSizeMsg{Width: 2 * common.MinimumWidth, Height: 2 * common.MinimumHeight})
 	return m
 }
