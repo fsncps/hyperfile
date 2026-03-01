@@ -1,16 +1,9 @@
 package sidebar
 
-// These are effectively consts
-// Had to use `var` as go doesn't allows const structs
-var pinnedDividerDir = directory{ //nolint: gochecknoglobals // This is more like a const.
-	Name:     "",
-	Location: "Pinned+-*/=?",
-}
+// Section-divider sentinel directories.  Location values are unmatchable by real paths.
+var placesDividerDir = directory{Location: "Places+-*/=?"}  //nolint: gochecknoglobals // effectively const
+var networkDividerDir = directory{Location: "Network+-*/=?"} //nolint: gochecknoglobals // effectively const
+var devicesDividerDir = directory{Location: "Devices+-*/=?"} //nolint: gochecknoglobals // effectively const
 
-var diskDividerDir = directory{ //nolint: gochecknoglobals // This is more like a const.
-	Name:     "",
-	Location: "Disks+-*/=?",
-}
-
-// superfile logo + blank line + search bar
-const sideBarInitialHeight = 3
+// sideBarInitialHeight reserves one row for the search bar when visible.
+const sideBarInitialHeight = 1

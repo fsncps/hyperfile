@@ -13,17 +13,13 @@ import (
 
 // Rename file where the cursor is located
 func (s *Model) PinnedItemRename() {
-	pinnedBegin, pinnedEnd := s.pinnedIndexRange()
-	// We have not selected a pinned directory, rename is not allowed
-	if s.cursor < pinnedBegin || s.cursor > pinnedEnd {
+	if s.cursor < 0 || s.cursor >= len(s.directories) || !s.directories[s.cursor].pinned {
 		return
 	}
 
 	nameLen := len(s.directories[s.cursor].Name)
-	cursorPos := nameLen
-
 	s.renaming = true
-	s.rename = common.GeneratePinnedRenameTextInput(cursorPos, s.directories[s.cursor].Name)
+	s.rename = common.GeneratePinnedRenameTextInput(nameLen, s.directories[s.cursor].Name)
 }
 
 // Cancel rename pinned directory
@@ -114,9 +110,9 @@ func New() Model {
 		searchBar:   common.GenerateSearchBar(),
 	}
 
-	// Excluding borders(2), Searchbar Prompt(2), and one extra character than is appended
-	// by searchBar.View()
-	res.searchBar.Width = common.Config.SidebarWidth - 2 - 2 - 1
+	// Excluding borders(2), padding(2), Searchbar Prompt(2), and one extra character
+	// appended by searchBar.View()
+	res.searchBar.Width = common.Config.SidebarWidth - 2 - 2 - 2 - 1
 	res.searchBar.Placeholder = "(" + common.Hotkeys.SearchBar[0] + ")" + " Search"
 	return res
 }

@@ -14,6 +14,7 @@ func SidebarRenderer(totalHeight int, totalWidth int, sidebarFocussed bool) *ren
 	cfg.ContentFGColor = common.SidebarFGColor
 	cfg.ContentBGColor = common.SidebarBGColor
 
+	cfg.HorizontalPadding = 1
 	cfg.BorderRequired = true
 	cfg.BorderBGColor = common.SidebarBGColor
 	cfg.BorderFGColor = common.SidebarBorderColor
@@ -36,6 +37,7 @@ func FilePanelRenderer(totalHeight int, totalWidth int, filePanelFocussed bool) 
 	cfg.ContentFGColor = common.FilePanelFGColor
 	cfg.ContentBGColor = common.FilePanelBGColor
 
+	cfg.HorizontalPadding = 1
 	cfg.BorderRequired = true
 	cfg.BorderBGColor = common.FilePanelBGColor
 	cfg.BorderFGColor = common.FilePanelBorderColor
@@ -56,6 +58,7 @@ func FilePreviewPanelRenderer(totalHeight int, totalWidth int) *rendering.Render
 	cfg := rendering.DefaultRendererConfig(totalHeight, totalWidth)
 	cfg.ContentFGColor = common.FilePanelFGColor
 	cfg.ContentBGColor = common.FilePanelBGColor
+	cfg.HorizontalPadding = 1
 	cfg.BorderRequired = true
 	cfg.BorderBGColor = common.FilePanelBGColor
 	cfg.BorderFGColor = common.FilePanelBorderColor
@@ -95,6 +98,7 @@ func DefaultFooterRenderer(totalHeight int, totalWidth int, focussed bool) *rend
 	cfg.ContentFGColor = common.FooterFGColor
 	cfg.ContentBGColor = common.FooterBGColor
 
+	cfg.HorizontalPadding = 1
 	cfg.BorderRequired = true
 	cfg.BorderBGColor = common.FooterBGColor
 	cfg.BorderFGColor = common.FooterBorderColor

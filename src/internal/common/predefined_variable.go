@@ -26,10 +26,7 @@ var (
 )
 
 var (
-	SideBarSuperfileTitle string
-	SideBarPinnedDivider  string
-	SideBarDisksDivider   string
-	SideBarNoneText       string
+	SideBarNoneText string
 
 	ProcessBarNoneText string
 
@@ -67,14 +64,6 @@ func LoadInitialPrerenderedVariables() {
 // loadConfigFile() in config_types.go should be finished
 // InitIcon() in config package in function.go should be finished
 func LoadPrerenderedVariables() {
-	SideBarSuperfileTitle = SidebarTitleStyle.Render(" " + icon.SuperfileIcon + icon.Space + "superfile")
-
-	SideBarPinnedDivider = SidebarTitleStyle.Render(icon.Pinned+icon.Space+"Pinned") +
-		SidebarDividerStyle.Render(" ───────────")
-
-	SideBarDisksDivider = SidebarTitleStyle.Render(icon.Disk+icon.Space+"Disks") +
-		SidebarDividerStyle.Render(" ────────────")
-
 	SideBarNoneText = SidebarStyle.Render(" " + icon.Error + icon.Space + "None")
 
 	ProcessBarNoneText = icon.Error + icon.Space + "No processes running"

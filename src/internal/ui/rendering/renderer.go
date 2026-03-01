@@ -46,7 +46,9 @@ type Renderer struct {
 	totalWidth int
 
 	contentHeight int
-	contentWidth  int
+	contentWidth int
+	textWidth    int // contentWidth - 2*hPadding; actual area available for text
+	hPadding     int
 
 	borderRequired bool
 
@@ -57,9 +59,10 @@ type RendererConfig struct {
 	TotalHeight int
 	TotalWidth  int
 
-	DefTruncateStyle TruncateStyle
-	TruncateHeight   bool
-	BorderRequired   bool
+	DefTruncateStyle  TruncateStyle
+	TruncateHeight    bool
+	BorderRequired    bool
+	HorizontalPadding int
 
 	ContentFGColor lipgloss.TerminalColor
 	ContentBGColor lipgloss.TerminalColor
@@ -97,10 +100,13 @@ func NewRenderer(cfg RendererConfig) (*Renderer, error) {
 	if cfg.BorderRequired {
 		contentWidth -= 2
 	}
+	// textWidth is the actual area available for text (content minus horizontal padding).
+	// Width() in lipgloss includes padding, so contentWidth is passed to Width().
+	textWidth := contentWidth - 2*cfg.HorizontalPadding
 
 	return &Renderer{
 
-		contentSections:     []ContentRenderer{NewContentRenderer(contentHeight, contentWidth, cfg.DefTruncateStyle)},
+		contentSections:     []ContentRenderer{NewContentRenderer(contentHeight, textWidth, cfg.DefTruncateStyle)},
 		sectionDividers:     nil,
 		curSectionIdx:       0,
 		actualContentHeight: 0,
@@ -118,10 +124,18 @@ func NewRenderer(cfg RendererConfig) (*Renderer, error) {
 		totalWidth:    cfg.TotalWidth,
 		contentHeight: contentHeight,
 		contentWidth:  contentWidth,
+		textWidth:     textWidth,
+		hPadding:      cfg.HorizontalPadding,
 
 		borderRequired: cfg.BorderRequired,
 		borderStrings:  cfg.Border,
 	}, nil
+}
+
+// ContentWidth returns the usable text area width (excluding borders and padding).
+// Callers that manually size content lines should use this instead of outer panel widths.
+func (r *Renderer) ContentWidth() int {
+	return r.textWidth
 }
 
 func validate(cfg RendererConfig) error {

@@ -1,19 +1,17 @@
 package sidebar
 
 func (d directory) IsDivider() bool {
-	return d == pinnedDividerDir || d == diskDividerDir
+	return d == placesDividerDir || d == networkDividerDir || d == devicesDividerDir
 }
+
 func (d directory) RequiredHeight() int {
 	if d.IsDivider() {
-		return 3
+		return 2
 	}
 	return 1
 }
 
-// True if only dividers are in directories slice,
-// but no actual directories
-// This will be pretty quick. But we can replace it with
-// len(s.directories) <= 2 - More hacky and hardcoded-like, but faster
+// NoActualDir returns true when only dividers are present (no navigable directories).
 func (s *Model) NoActualDir() bool {
 	for _, d := range s.directories {
 		if !d.IsDivider() {
@@ -29,15 +27,13 @@ func (s *Model) isCursorInvalid() bool {
 
 func (s *Model) resetCursor() {
 	s.cursor = 0
-	// Move to first non Divider dir
 	for i, d := range s.directories {
 		if !d.IsDivider() {
 			s.cursor = i
 			return
 		}
 	}
-	// If all directories are divider, code will reach here. and s.cursor will stay 0
-	// Or s.directories is empty
+	// If all directories are dividers, cursor stays at 0
 }
 
 // SearchBarFocused returns whether the search bar is focused
@@ -66,25 +62,4 @@ func (s *Model) GetCurrentDirectoryLocation() string {
 		return ""
 	}
 	return s.directories[s.cursor].Location
-}
-
-func (s *Model) pinnedIndexRange() (int, int) {
-	// pinned directories start after well-known directories and the divider
-	// Can't use getPinnedDirectories() here, as if we are in search mode, we would be showing
-	// and having less directories in sideBar.directories slice
-
-	// TODO : This is inefficient to iterate each time for this.
-	// This information can be kept precomputed
-	pinnedDividerIdx := -1
-	diskDividerIdx := -1
-	for i, d := range s.directories {
-		if d == pinnedDividerDir {
-			pinnedDividerIdx = i
-		}
-		if d == diskDividerDir {
-			diskDividerIdx = i
-			break
-		}
-	}
-	return pinnedDividerIdx + 1, diskDividerIdx - 1
 }

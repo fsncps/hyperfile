@@ -644,7 +644,8 @@ func (m *model) filePreviewPanelRenderWithDimensions(previewHeight int, previewW
 	// Threshold > 7 excludes unit-test dimensions (≤7) while always firing in real usage (≥16).
 	if previewHeight > 7 {
 		name := filepath.Base(itemPath)
-		truncated := common.TruncateTextBeginning(name, previewWidth-6, "...")
+		iconW := ansi.StringWidth(common.FilePanelTopDirectoryIcon)
+		truncated := common.TruncateTextBeginning(name, r.ContentWidth()-iconW, "...")
 		r.AddLines(common.FilePanelTopDirectoryIcon + common.FilePanelTopPathStyle.Render(truncated))
 		r.AddSection()
 	}

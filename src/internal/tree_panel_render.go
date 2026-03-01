@@ -25,12 +25,13 @@ func (m *model) treePanelRender(idx int) string {
 	iconPart := common.FilePanelTopDirectoryIcon
 	iconW := ansi.StringWidth(iconPart)
 	depthW := len(depthStr) // ASCII-safe
-	pathAvail := tree.width - iconW - depthW - 1 // -1 for minimum gap
+	cw := r.ContentWidth()
+	pathAvail := cw - iconW - depthW - 1 // -1 for minimum gap
 	if pathAvail < 4 {
 		pathAvail = 4
 	}
 	truncatedRoot := common.TruncateTextBeginning(tree.root, pathAvail, "...")
-	pad := max(1, tree.width-iconW-ansi.StringWidth(truncatedRoot)-depthW)
+	pad := max(1, cw-iconW-ansi.StringWidth(truncatedRoot)-depthW)
 	headerLine := iconPart +
 		common.FilePanelTopPathStyle.Render(truncatedRoot) +
 		strings.Repeat(" ", pad) +
@@ -77,7 +78,7 @@ func (m *model) treePanelRender(idx int) string {
 		// Width available for PrettierName (icon + name), accounting for branch prefix.
 		// branchStr is pure ASCII/box-chars so byte length = display width here.
 		overhead := 2 + ansi.StringWidth(branchStr) + 2 // cursor+space + branch + indicator+space
-		nameWidth := tree.width - overhead
+		nameWidth := r.ContentWidth() - overhead
 		if nameWidth < 4 {
 			nameWidth = 4
 		}

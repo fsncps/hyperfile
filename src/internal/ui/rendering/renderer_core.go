@@ -33,12 +33,12 @@ func (r *Renderer) AddSection() {
 	r.sectionDividers = append(r.sectionDividers, lipgloss.NewStyle().
 		Foreground(r.borderFGColor).
 		Background(r.borderBGColor).
-		Render(strings.Repeat(r.borderStrings.Top, r.contentWidth)))
+		Render(strings.Repeat(r.borderStrings.Top, r.textWidth)))
 	r.actualContentHeight++
 
 	remainingHeight := r.contentHeight - r.actualContentHeight
 	r.contentSections = append(r.contentSections,
-		NewContentRenderer(remainingHeight, r.contentWidth, r.defTruncateStyle))
+		NewContentRenderer(remainingHeight, r.textWidth, r.defTruncateStyle))
 	// Adjust index
 	r.curSectionIdx++
 }
@@ -121,6 +121,10 @@ func (r *Renderer) Style() lipgloss.Style {
 		Height(contentHeight).
 		Background(r.contentBGColor).
 		Foreground(r.contentFGColor)
+
+	if r.hPadding > 0 {
+		s = s.PaddingLeft(r.hPadding).PaddingRight(r.hPadding)
+	}
 
 	if r.borderRequired {
 		s = s.Border(r.border.GetBorder(r.borderStrings))

@@ -59,6 +59,13 @@ var (
 
 var TreeBranchStyle lipgloss.Style
 
+// Sidebar section-header styles — fixed accent colours, independent of theme.
+var (
+	SideBarPlacesHeaderStyle  lipgloss.Style
+	SideBarNetworkHeaderStyle lipgloss.Style
+	SideBarDevicesHeaderStyle lipgloss.Style
+)
+
 var (
 	PromptSuccessStyle lipgloss.Style
 	PromptFailureStyle lipgloss.Style
@@ -217,6 +224,14 @@ func LoadThemeConfig() { //nolint: funlen // Variable initialization
 
 	// Tree panel branch lines
 	TreeBranchStyle = lipgloss.NewStyle().Foreground(hintColor).Background(FilePanelBGColor)
+
+	// Sidebar section headers (fixed accent colours)
+	SideBarPlacesHeaderStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#61AFEF")).Background(SidebarBGColor).Bold(true)
+	SideBarNetworkHeaderStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#98C379")).Background(SidebarBGColor).Bold(true)
+	SideBarDevicesHeaderStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#E5C07B")).Background(SidebarBGColor).Bold(true)
 
 	// Prompt Style
 	PromptSuccessStyle = lipgloss.NewStyle().Foreground(promptSuccessColor).Background(ModalBGColor)

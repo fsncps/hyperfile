@@ -16,7 +16,7 @@ func dirSlice(count int) []directory {
 }
 
 func fullDirSlice(count int) []directory {
-	return formDirctorySlice(dirSlice(count), dirSlice(count), dirSlice(count))
+	return formDirectorySlice(dirSlice(count), dirSlice(count), nil, dirSlice(count))
 }
 
 // TODO : Use t.Run(tt.name
@@ -47,7 +47,7 @@ func Test_noActualDir(t *testing.T) {
 		{
 			"Non-Empty Sidebar with only pinned directories",
 			Model{
-				directories: formDirctorySlice(nil, dirSlice(10), nil),
+				directories: formDirectorySlice(nil, dirSlice(10), nil, nil),
 			},
 			false,
 		},
@@ -82,15 +82,15 @@ func Test_isCursorInvalid(t *testing.T) {
 			Model{
 				directories: fullDirSlice(10),
 				renderIndex: 0,
-				cursor:      32,
+				cursor:      33, // len=33, index 33 is out of bounds
 			},
 			true,
 		},
 		{
-			"Curson points to pinned divider",
+			"Cursor points to section divider",
 			Model{
 				directories: fullDirSlice(10),
-				cursor:      10,
+				cursor:      21, // networkDivider
 			},
 			true,
 		},
@@ -120,23 +120,23 @@ func Test_resetCursor(t *testing.T) {
 		{
 			name: "Only Pinned directories",
 			curSideBar: Model{
-				directories: formDirctorySlice(nil, dirSlice(10), nil),
+				directories: formDirectorySlice(nil, dirSlice(10), nil, nil),
 			},
-			expectedCursorPos: 1, // After pinned divider
+			expectedCursorPos: 1, // After placesDivider
 		},
 		{
 			name: "All kind of directories",
 			curSideBar: Model{
 				directories: fullDirSlice(10),
 			},
-			expectedCursorPos: 0, // First home
+			expectedCursorPos: 1, // First wellKnown (index 0 is placesDivider)
 		},
 		{
 			name: "Only Disk",
 			curSideBar: Model{
-				directories: formDirctorySlice(nil, nil, dirSlice(10)),
+				directories: formDirectorySlice(nil, nil, nil, dirSlice(10)),
 			},
-			expectedCursorPos: 2, // After pinned and dist divider
+			expectedCursorPos: 3, // After placesDivider, netDivider, devDivider
 		},
 		{
 			name: "Empty Sidebar",

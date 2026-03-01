@@ -6,16 +6,20 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// fullDirSlice(N): [0]=placesDivider(h=2), [1..N]=wellKnown, [N+1..2N]=pinned,
+// [2N+1]=netDivider(h=2), [2N+2]=devDivider(h=2), [2N+3..3N+2]=disks. len=3N+3.
+//
+// For N=10: places@0, well@1-10, pinned@11-20, net@21, dev@22, disks@23-32. len=33.
+
 func Test_lastRenderIndex(t *testing.T) {
 	// Setup test data
 	sidebarA := Model{
-		directories: formDirctorySlice(
-			dirSlice(10), dirSlice(10), dirSlice(10),
-		),
+		directories: fullDirSlice(10),
 	}
+	// [0]=places(h=2), [1]=well, [2]=net(h=2), [3]=dev(h=2), [4-8]=disks. len=9.
 	sidebarB := Model{
-		directories: formDirctorySlice(
-			dirSlice(1), nil, dirSlice(5),
+		directories: formDirectorySlice(
+			dirSlice(1), nil, nil, dirSlice(5),
 		),
 	}
 
@@ -32,48 +36,48 @@ func Test_lastRenderIndex(t *testing.T) {
 			sidebar:           sidebarA,
 			mainPanelHeight:   10,
 			startIndex:        0,
-			expectedLastIndex: 6,
-			explanation:       "3(initialHeight) + 7 (0-6 home dirs)",
+			expectedLastIndex: 7,
+			explanation:       "1(initialHeight) + 2(places) + 7(1-7 well dirs) = 10",
 		},
 		{
 			name:              "Medium viewport showing home and some pinned",
 			sidebar:           sidebarA,
 			mainPanelHeight:   20,
 			startIndex:        0,
-			expectedLastIndex: 14,
-			explanation:       "3(initialHeight) + 10 (0-9 home dirs) + 3 (10-pinned divider) + 4 (11-14 pinned dirs)",
+			expectedLastIndex: 17,
+			explanation:       "1(initialHeight) + 2(places) + 10(1-10 well) + 7(11-17 pinned) = 20",
 		},
 		{
 			name:              "Medium viewport starting from pinned dirs",
 			sidebar:           sidebarA,
 			mainPanelHeight:   20,
 			startIndex:        11,
-			expectedLastIndex: 25,
-			explanation:       "3(initialHeight) + 10 (11-20 pinned dirs) + 3 (21-disk divider) + 4 (22-25 disk dirs)",
+			expectedLastIndex: 27,
+			explanation:       "1(init) + 10(11-20 pinned) + 2(net) + 2(dev) + 5(23-27 disks) = 20",
 		},
 		{
-			name:              "Large viewport showing all directories",
+			name:              "Large viewport starting from pinned dirs",
 			sidebar:           sidebarA,
 			mainPanelHeight:   100,
 			startIndex:        11,
-			expectedLastIndex: 31,
-			explanation:       "Last dir index is 31",
+			expectedLastIndex: 32,
+			explanation:       "Last dir index is 32",
 		},
 		{
 			name:              "Start index beyond directory count",
 			sidebar:           sidebarA,
 			mainPanelHeight:   100,
-			startIndex:        32,
-			expectedLastIndex: 31,
-			explanation:       "When startIndex > len(directories), return last valid index",
+			startIndex:        33, // len=33, so 33 is out of bounds
+			expectedLastIndex: 32,
+			explanation:       "When startIndex >= len(directories), return last valid index",
 		},
 		{
 			name:              "Asymmetric directory distribution",
 			sidebar:           sidebarB,
 			mainPanelHeight:   12,
 			startIndex:        0,
-			expectedLastIndex: 4,
-			explanation:       "3(initialHeight) + 1 (0-homedir) + 3(1-pinned divider) + 3 (2-diskdivider) + 2 (3-4 diskdirs)",
+			expectedLastIndex: 7,
+			explanation:       "1(init) + 2(places) + 1(well) + 2(net) + 2(dev) + 4(disks 4-7) = 12",
 		},
 	}
 
@@ -90,19 +94,22 @@ func Test_firstRenderIndex(t *testing.T) {
 	sidebarA := Model{
 		directories: fullDirSlice(10),
 	}
+	// [0]=places(h=2), [1]=well, [2]=net(h=2), [3]=dev(h=2), [4-8]=disks. len=9.
 	sidebarB := Model{
-		directories: formDirctorySlice(
-			dirSlice(1), nil, dirSlice(5),
+		directories: formDirectorySlice(
+			dirSlice(1), nil, nil, dirSlice(5),
 		),
 	}
+	// [0]=places(h=2), [1-5]=pinned, [6]=net(h=2), [7]=dev(h=2), [8-12]=disks. len=13.
 	sidebarC := Model{
-		directories: formDirctorySlice(
-			nil, dirSlice(5), dirSlice(5),
+		directories: formDirectorySlice(
+			nil, dirSlice(5), nil, dirSlice(5),
 		),
 	}
+	// [0]=places(h=2), [1]=net(h=2), [2]=dev(h=2), [3-5]=disks. len=6.
 	sidebarD := Model{
-		directories: formDirctorySlice(
-			nil, nil, dirSlice(3),
+		directories: formDirectorySlice(
+			nil, nil, nil, dirSlice(3),
 		),
 	}
 
@@ -124,16 +131,16 @@ func Test_firstRenderIndex(t *testing.T) {
 			sidebar:            sidebarA,
 			mainPanelHeight:    10,
 			endIndex:           10,
-			expectedFirstIndex: 6,
-			explanation:        "3(InitialHeight) + 4 (6-9 homedirs) + 3 (10-pinned divider)",
+			expectedFirstIndex: 2,
+			explanation:        "1(init) + 9(2-10 well dirs) = 10",
 		},
 		{
 			name:               "Small panel height",
 			sidebar:            sidebarA,
 			mainPanelHeight:    5,
 			endIndex:           15,
-			expectedFirstIndex: 14,
-			explanation:        "3(InitialHeight) + 2(14-15 pinned dirs)",
+			expectedFirstIndex: 12,
+			explanation:        "1(init) + 4(12-15 pinned) = 5",
 		},
 		{
 			name:               "End index near beginning",
@@ -144,51 +151,51 @@ func Test_firstRenderIndex(t *testing.T) {
 			explanation:        "When end index is near beginning, first index should be 0",
 		},
 		{
-			name:               "End index at disk divider",
+			name:               "End index at network divider",
 			sidebar:            sidebarA,
 			mainPanelHeight:    15,
-			endIndex:           21, // Disk divider in sidebar_a
-			expectedFirstIndex: 12,
-			explanation:        "3(InitialHeight) + 9(12-20 pinned dirs) + 3(21-disk divider)",
+			endIndex:           21, // networkDivider
+			expectedFirstIndex: 9,
+			explanation:        "1(init) + 2(netDiv) + 12(9-20 pinned) = 15",
 		},
 		{
 			name:               "Very large panel height showing all items",
 			sidebar:            sidebarA,
 			mainPanelHeight:    100,
-			endIndex:           31, // Last disk dir in sidebar_a
+			endIndex:           31, // Near last disk dir
 			expectedFirstIndex: 0,
 			explanation:        "Large panel should show all directories from start",
 		},
 		{
-			name:               "Asymetric sidebar with few directories",
+			name:               "Asymmetric sidebar with few directories",
 			sidebar:            sidebarB,
 			mainPanelHeight:    12,
-			endIndex:           4, // Last disk dir in sidebar_b
+			endIndex:           4, // First disk dir
 			expectedFirstIndex: 0,
-			explanation:        "Small sidebar should fit in panel height",
+			explanation:        "Small sidebar fits in panel height",
 		},
 		{
-			name:               "No home directories case",
+			name:               "No wellKnown directories case",
 			sidebar:            sidebarC,
 			mainPanelHeight:    10,
-			endIndex:           6, // Disk dir in sidebar_c
-			expectedFirstIndex: 2, // Pinned divider
-			explanation:        "3(InitialHeight) + 4(2-5 pinned dirs) + 3(6-disk divider)",
+			endIndex:           6, // networkDivider
+			expectedFirstIndex: 0,
+			explanation:        "1(init) + 2(places) + 5(1-5 pinned) + 2(netDiv) = 10",
 		},
 		{
 			name:               "Only disk directories case",
 			sidebar:            sidebarD,
 			mainPanelHeight:    8,
-			endIndex:           4, // Last disk dir
-			expectedFirstIndex: 2, // Disk divider
-			explanation:        "3(InitialHeight) + 3(2-4 disk dirs)",
+			endIndex:           4, // Second disk dir
+			expectedFirstIndex: 1, // 1(init) + 2(net) + 2(dev) + 2(disks 3-4) = 7 ≤ 8; places(h=2) would push to 9 > 8
+			explanation:        "1(init) + 2(netDiv) + 2(devDiv) + 2(disks) = 7; adding places(h=2) = 9 > 8, stop at netDiv",
 		},
 		{
 			name:               "Empty sidebar case",
 			sidebar:            sidebarE,
 			mainPanelHeight:    10,
-			endIndex:           1, // Disk divider
-			expectedFirstIndex: 0, // Pinned divider
+			endIndex:           1, // netDivider
+			expectedFirstIndex: 0,
 			explanation:        "Empty sidebar should show all dividers",
 		},
 		{
@@ -203,33 +210,33 @@ func Test_firstRenderIndex(t *testing.T) {
 			name:               "End index out of bounds",
 			sidebar:            sidebarA,
 			mainPanelHeight:    20,
-			endIndex:           32, // Out of bounds for sidebar_a
-			expectedFirstIndex: 33, // endIndex + 1
+			endIndex:           33, // len=33, so 33 is out of bounds
+			expectedFirstIndex: 34, // endIndex + 1
 			explanation:        "When end index is out of bounds, should return endIndex+1",
 		},
 		{
 			name:               "Very small panel height",
 			sidebar:            sidebarA,
-			mainPanelHeight:    2, // Too small to fit anything
+			mainPanelHeight:    1, // initialHeight=1, no items fit
 			endIndex:           10,
 			expectedFirstIndex: 11,
-			explanation:        "With panel height less than initialHeight, first index is invalid",
+			explanation:        "With panel height equal to initialHeight, no items can be rendered",
 		},
 		{
-			name:               "Panel height exactly matches divider",
+			name:               "Panel height exactly matches one section divider",
 			sidebar:            sidebarA,
-			mainPanelHeight:    6,  // Just enough for initialHeight + divider
-			endIndex:           10, // Pinned divider
-			expectedFirstIndex: 10,
-			explanation:        "When panel height only fits the divider, start index should be the same",
+			mainPanelHeight:    3, // 1(init) + 2(netDiv) = 3
+			endIndex:           21, // networkDivider
+			expectedFirstIndex: 21,
+			explanation:        "Panel height exactly fits one divider (init + h=2)",
 		},
 		{
-			name:               "Boundary case between directory types",
+			name:               "Boundary case at consecutive section headers",
 			sidebar:            sidebarA,
-			mainPanelHeight:    7,
-			endIndex:           11, // First pinned dir
-			expectedFirstIndex: 10, // Pinned divider
-			explanation:        "3(InitialHeight) + 3(10-pinned divider) + 1(11-pinned dir)",
+			mainPanelHeight:    5, // 1(init) + 2(devDiv) + 2(netDiv) = 5
+			endIndex:           22, // devDivider
+			expectedFirstIndex: 21,
+			explanation:        "1(init) + 2(devDiv) + 2(netDiv) = 5. First index is networkDivider.",
 		},
 	}
 
@@ -256,8 +263,8 @@ func Test_updateRenderIndex(t *testing.T) {
 			name: "Case I: Cursor moved above render range",
 			sidebar: Model{
 				directories: fullDirSlice(10),
-				renderIndex: 10, // Start rendering from pinned divider
-				cursor:      5,  // Cursor moved to home directory
+				renderIndex: 10,
+				cursor:      5, // Cursor moved to wellKnown directory
 			},
 			mainPanelHeight:     15,
 			expectedRenderIndex: 5,
@@ -267,7 +274,7 @@ func Test_updateRenderIndex(t *testing.T) {
 			name: "Case II: Cursor within render range",
 			sidebar: Model{
 				directories: fullDirSlice(10),
-				renderIndex: 5, // Start rendering from a home directory
+				renderIndex: 5,
 				cursor:      8, // Cursor within visible range
 			},
 			mainPanelHeight:     15,
@@ -278,34 +285,33 @@ func Test_updateRenderIndex(t *testing.T) {
 			name: "Case III: Cursor moved below render range",
 			sidebar: Model{
 				directories: fullDirSlice(10),
-				renderIndex: 0,  // Start rendering from beginning
+				renderIndex: 0,
 				cursor:      20, // Cursor moved to a pinned directory outside visible range
 			},
 			mainPanelHeight:     10,
-			expectedRenderIndex: 14, // Should adjust to make cursor visible
-			// 3(Initial height) + 7(14-20 pinned dirs)
-			explanation: "When cursor moves below render range, renderIndex should adjust to make cursor visible",
+			expectedRenderIndex: 12, // 1(init) + 9(12-20 pinned) = 10
+			explanation:         "When cursor moves below render range, renderIndex should adjust to make cursor visible",
 		},
 		{
 			name: "Edge case: Small panel with cursor at end",
 			sidebar: Model{
 				directories: fullDirSlice(10),
 				renderIndex: 0,
-				cursor:      31, // Last disk directory
+				cursor:      31, // Near last disk directory
 			},
 			mainPanelHeight:     5,
-			expectedRenderIndex: 30, // Should show only the last couple items
+			expectedRenderIndex: 28, // 1(init) + 4(28-31 disks) = 5
 			explanation:         "With small panel and cursor at end, should adjust renderIndex to show cursor",
 		},
 		{
 			name: "Edge case: Large panel showing everything",
 			sidebar: Model{
-				directories: formDirctorySlice(dirSlice(1), nil, dirSlice(5)),
+				directories: formDirectorySlice(dirSlice(1), nil, nil, dirSlice(5)),
 				renderIndex: 2,
 				cursor:      4,
 			},
-			mainPanelHeight:     50, // Large enough to show all directories
-			expectedRenderIndex: 2,  // No change needed as everything is visible
+			mainPanelHeight:     50,
+			expectedRenderIndex: 2,
 			explanation:         "With large panel showing all items, renderIndex should remain unchanged",
 		},
 		{
@@ -316,7 +322,7 @@ func Test_updateRenderIndex(t *testing.T) {
 				cursor:      1,
 			},
 			mainPanelHeight:     10,
-			expectedRenderIndex: 0, // No change needed for empty sidebar
+			expectedRenderIndex: 0,
 			explanation:         "With empty sidebar, renderIndex should remain at 0",
 		},
 		{
@@ -327,7 +333,7 @@ func Test_updateRenderIndex(t *testing.T) {
 				cursor:      15,
 			},
 			mainPanelHeight:     10,
-			expectedRenderIndex: 15, // No change needed, Case I takes precedence
+			expectedRenderIndex: 15,
 			explanation: "When cursor is exactly at renderIndex, " +
 				"Case I takes precedence and renderIndex remains unchanged",
 		},
@@ -336,10 +342,10 @@ func Test_updateRenderIndex(t *testing.T) {
 			sidebar: Model{
 				directories: fullDirSlice(10),
 				renderIndex: 5,
-				cursor:      9, // Just at the edge of what's visible
+				cursor:      9,
 			},
 			mainPanelHeight:     8,
-			expectedRenderIndex: 5, // Still visible, no change needed
+			expectedRenderIndex: 5,
 			explanation:         "When cursor is at the edge of visible range, renderIndex should not change",
 		},
 		{
@@ -347,23 +353,18 @@ func Test_updateRenderIndex(t *testing.T) {
 			sidebar: Model{
 				directories: fullDirSlice(10),
 				renderIndex: 5,
-				cursor:      11, // Just beyond visible range
+				cursor:      14, // Just beyond visible range [5-13] for h=10
 			},
 			mainPanelHeight:     10,
-			expectedRenderIndex: 7, // Adjust to make cursor visible
+			expectedRenderIndex: 6, // firstRenderedIndex(10, 14) = 6
 			explanation:         "When cursor is just beyond visible range, renderIndex should adjust",
 		},
 	}
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create a copy of the sidebar to avoid modifying the original
 			sidebar := tt.sidebar
-
-			// Update render index
 			sidebar.updateRenderIndex(tt.mainPanelHeight)
-
-			// Check the result
 			assert.Equal(t, tt.expectedRenderIndex, sidebar.renderIndex,
 				"updateRenderIndex failed: %s", tt.explanation)
 		})
@@ -384,86 +385,81 @@ func Test_listUp(t *testing.T) {
 			sidebar: Model{
 				directories: fullDirSlice(10),
 				renderIndex: 5,
-				cursor:      5, // Starting from a home directory
+				cursor:      5,
 			},
 			mainPanelHeight:     15,
-			expectedCursor:      4, // Should move up one position
-			expectedRenderIndex: 4, // Render index should follow cursor
+			expectedCursor:      4,
+			expectedRenderIndex: 4,
 			explanation:         "When cursor is in the middle, it should move up one position",
 		},
 		{
-			name: "Skip divider when moving up",
+			name: "Skip consecutive dividers when moving up",
 			sidebar: Model{
 				directories: fullDirSlice(10),
-				renderIndex: 8,
-				cursor:      11, // Position just after pinned divider
+				renderIndex: 23,
+				cursor:      23, // First disk, just after devDivider(22) and netDivider(21)
 			},
 			mainPanelHeight:     10,
-			expectedCursor:      9, // Should skip divider (10) and move to home dir (9)
-			expectedRenderIndex: 8,
-			explanation:         "When moving up to a divider, cursor should skip it and move to previous item",
+			expectedCursor:      20, // Skips devDivider(22) and netDivider(21)
+			expectedRenderIndex: 20, // Case I: cursor < renderIndex
+			explanation:         "When moving up to consecutive dividers, cursor should skip all of them",
 		},
 		{
 			name: "Wrap around from top to bottom",
 			sidebar: Model{
 				directories: fullDirSlice(10),
 				renderIndex: 0,
-				cursor:      0, // At the very top
+				cursor:      0, // placesDivider — but we start here to test wrap
 			},
 			mainPanelHeight:     10,
-			expectedCursor:      31, // Should wrap to last directory (index 31)
-			expectedRenderIndex: 25, // Should adjust render to show cursor
-			// 3(Initial Height) + 7(25-31 disk dirs)
-			explanation: "When at the top, cursor should wrap to the bottom",
+			expectedCursor:      32, // Wraps to last disk directory (index 32)
+			expectedRenderIndex: 24, // 1(init) + 9(24-32 disks) = 10
+			explanation:         "When at the top (index 0), cursor should wrap to the bottom",
 		},
 		{
 			name: "Skip multiple consecutive dividers",
+			// [0]=places(h=2), [1-5]=well, [6]=net(h=2), [7]=dev(h=2), [8-12]=disks. len=13.
 			sidebar: Model{
-				// Create a sidebar with consecutive dividers for testing
-				directories: formDirctorySlice(dirSlice(5), nil, dirSlice(5)),
-				renderIndex: 5,
-				cursor:      7, // Position after consecutive dividers
+				directories: formDirectorySlice(dirSlice(5), nil, nil, dirSlice(5)),
+				renderIndex: 6,
+				cursor:      8, // First disk, just after devDivider(7) and netDivider(6)
 			},
 			mainPanelHeight:     10,
-			expectedCursor:      4, // Should skip all dividers and move to item before dividers
-			expectedRenderIndex: 4, // Should adjust render index accordingly
+			expectedCursor:      5, // Skips devDivider(7) and netDivider(6) to land on well[4]
+			expectedRenderIndex: 5, // Case I: cursor(5) < renderIndex(6)
 			explanation:         "When encountering multiple consecutive dividers, cursor should skip all of them",
 		},
 		{
 			name: "No actual directories case",
 			sidebar: Model{
-				directories: fullDirSlice(0), // Empty sidebar with just dividers
+				directories: fullDirSlice(0),
 				renderIndex: 0,
 				cursor:      0,
 			},
 			mainPanelHeight:     10,
-			expectedCursor:      0, // Should remain unchanged
-			expectedRenderIndex: 0, // Should remain unchanged
+			expectedCursor:      0,
+			expectedRenderIndex: 0,
 			explanation:         "When there are no actual directories, cursor should not move",
 		},
 		{
 			name: "Large panel showing all directories",
+			// [0]=places(h=2), [1-2]=well, [3-4]=pinned, [5]=net(h=2), [6]=dev(h=2), [7-8]=disks.
 			sidebar: Model{
-				directories: formDirctorySlice(dirSlice(2), dirSlice(2), dirSlice(2)),
+				directories: formDirectorySlice(dirSlice(2), dirSlice(2), nil, dirSlice(2)),
 				renderIndex: 0,
-				cursor:      3, // Some directory in the middle
+				cursor:      3, // pinned[0]
 			},
-			mainPanelHeight:     50, // Large enough to show all directories
-			expectedCursor:      1,  // Should move up one position
-			expectedRenderIndex: 0,  // No change needed as everything is visible
-			explanation:         "With large panel showing all items, cursor should move up and renderIndex remain unchanged",
+			mainPanelHeight:     50,
+			expectedCursor:      2, // well[1] — no divider between well and pinned in Places
+			expectedRenderIndex: 0,
+			explanation:         "With large panel showing all items, cursor should move up one position",
 		},
 	}
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create a copy of the sidebar to avoid modifying the original
 			sidebar := tt.sidebar
-
-			// Call the function to test
 			sidebar.ListUp(tt.mainPanelHeight)
-
-			// Check the results
 			assert.Equal(t, tt.expectedCursor, sidebar.cursor,
 				"listUp cursor position: %s", tt.explanation)
 			assert.Equal(t, tt.expectedRenderIndex, sidebar.renderIndex,
@@ -486,86 +482,85 @@ func Test_listDown(t *testing.T) {
 			sidebar: Model{
 				directories: fullDirSlice(10),
 				renderIndex: 5,
-				cursor:      5, // Starting from a home directory
+				cursor:      5,
 			},
 			mainPanelHeight:     15,
-			expectedCursor:      6, // Should move down one position
-			expectedRenderIndex: 5, // Render index should remain the same as cursor is still visible
+			expectedCursor:      6,
+			expectedRenderIndex: 5,
 			explanation:         "When cursor is in the middle, it should move down one position",
 		},
 		{
-			name: "Skip divider when moving down",
+			name: "Skip consecutive dividers when moving down",
 			sidebar: Model{
 				directories: fullDirSlice(10),
-				renderIndex: 8,
-				cursor:      9, // Position just before pinned divider
+				renderIndex: 18,
+				cursor:      20, // Last pinned, before netDivider(21) and devDivider(22)
 			},
 			mainPanelHeight:     10,
-			expectedCursor:      11, // Should skip divider (10) and move to pinned dir (11)
-			expectedRenderIndex: 8,  // Should adjust render index to keep cursor visible
-			explanation:         "When moving down to a divider, cursor should skip it and move to next item",
+			expectedCursor:      23, // Skips netDivider(21) and devDivider(22) to land on disks[0]
+			expectedRenderIndex: 18, // Still visible (23 ≤ lastRenderedIndex(10,18)=24)
+			explanation:         "When moving down to consecutive dividers, cursor should skip all of them",
 		},
 		{
 			name: "Wrap around from bottom to top",
 			sidebar: Model{
 				directories: fullDirSlice(10),
 				renderIndex: 26,
-				cursor:      31, // At the very bottom
+				cursor:      32, // Last disk directory
 			},
 			mainPanelHeight:     10,
-			expectedCursor:      0, // Should wrap to first directory (index 0)
-			expectedRenderIndex: 0, // Should adjust render to show cursor
-			explanation:         "When at the bottom, cursor should wrap to the top",
+			expectedCursor:      1, // Wraps to 0 (placesDivider), skips to 1 (first wellKnown)
+			expectedRenderIndex: 0,
+			explanation:         "When at the bottom, cursor should wrap to top and skip placesDivider",
 		},
 		{
 			name: "Skip multiple consecutive dividers",
+			// [0]=places(h=2), [1-5]=well, [6]=net(h=2), [7]=dev(h=2), [8-12]=disks. len=13.
 			sidebar: Model{
-				// Create a sidebar with consecutive dividers for testing
-				directories: formDirctorySlice(dirSlice(5), nil, dirSlice(5)),
+				directories: formDirectorySlice(dirSlice(5), nil, nil, dirSlice(5)),
 				renderIndex: 0,
-				cursor:      4, // Position before consecutive dividers
+				cursor:      5, // Last wellKnown, before netDivider(6) and devDivider(7)
 			},
 			mainPanelHeight:     10,
-			expectedCursor:      7, // Should skip all dividers and move to item after dividers
-			expectedRenderIndex: 5, // Should adjust render index accordingly
-			// 3 (Initial Height) 6(5,6 - pinned and disk divider), 1 (7-Disk dir)
-			explanation: "When encountering multiple consecutive dividers, cursor should skip all of them",
+			expectedCursor:      8, // Skips netDivider(6) and devDivider(7) to land on disks[0]
+			expectedRenderIndex: 2, // firstRenderedIndex(10, 8)
+			explanation:         "When encountering consecutive dividers, cursor should skip all of them",
 		},
 		{
 			name: "No actual directories case",
 			sidebar: Model{
-				directories: fullDirSlice(0), // Empty sidebar with just dividers
+				directories: fullDirSlice(0),
 				renderIndex: 0,
 				cursor:      0,
 			},
 			mainPanelHeight:     10,
-			expectedCursor:      0, // Should remain unchanged
-			expectedRenderIndex: 0, // Should remain unchanged
+			expectedCursor:      0,
+			expectedRenderIndex: 0,
 			explanation:         "When there are no actual directories, cursor should not move",
 		},
 		{
-			name: "Move down from home to pinned section",
+			name: "Move down from Places to Devices section",
 			sidebar: Model{
 				directories: fullDirSlice(10),
-				renderIndex: 6,
-				cursor:      9, // Last home directory
+				renderIndex: 12,
+				cursor:      20, // Last pinned before networkDivider(21) and devicesDivider(22)
 			},
 			mainPanelHeight:     10,
-			expectedCursor:      11, // Should move to first pinned directory
-			expectedRenderIndex: 7,  // Should adjust render index to show cursor
-			explanation: "When moving down from last home directory," +
-				" cursor should skip divider and go to first pinned directory",
+			expectedCursor:      23, // First disk (skips net@21 and dev@22)
+			expectedRenderIndex: 17, // firstRenderedIndex(10, 23)
+			explanation:         "Moving down from last pinned should skip both section headers",
 		},
 		{
 			name: "Large panel showing all directories",
+			// [0]=places(h=2), [1-2]=well, [3-4]=pinned, [5]=net(h=2), [6]=dev(h=2), [7-8]=disks.
 			sidebar: Model{
-				directories: formDirctorySlice(dirSlice(2), dirSlice(2), dirSlice(2)),
+				directories: formDirectorySlice(dirSlice(2), dirSlice(2), nil, dirSlice(2)),
 				renderIndex: 0,
-				cursor:      3, // Some directory in the middle
+				cursor:      3,
 			},
-			mainPanelHeight:     50, // Large enough to show all directories
-			expectedCursor:      4,  // Should move down one position
-			expectedRenderIndex: 0,  // No change needed as everything is visible
+			mainPanelHeight:     50,
+			expectedCursor:      4,
+			expectedRenderIndex: 0,
 			explanation:         "With large panel showing all items, cursor should move down and renderIndex remain unchanged",
 		},
 		{
@@ -573,24 +568,19 @@ func Test_listDown(t *testing.T) {
 			sidebar: Model{
 				directories: fullDirSlice(10),
 				renderIndex: 5,
-				cursor:      14, // At the end of visible range
+				cursor:      18, // Last visible item for h=15 with renderIndex=5
 			},
 			mainPanelHeight:     15,
-			expectedCursor:      15, // Should move down one position
-			expectedRenderIndex: 6,  // Should increase render index to keep cursor visible
+			expectedCursor:      19,
+			expectedRenderIndex: 6, // firstRenderedIndex(15, 19) = 6
 			explanation:         "When cursor is at the end of visible range, moving down should adjust renderIndex",
 		},
 	}
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create a copy of the sidebar to avoid modifying the original
 			sidebar := tt.sidebar
-
-			// Call the function to test
 			sidebar.ListDown(tt.mainPanelHeight)
-
-			// Check the results
 			assert.Equal(t, tt.expectedCursor, sidebar.cursor,
 				"listDown cursor position: %s", tt.explanation)
 			assert.Equal(t, tt.expectedRenderIndex, sidebar.renderIndex,

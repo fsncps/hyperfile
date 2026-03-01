@@ -142,7 +142,8 @@ func TestFilePreviewRenderWithDimensions(t *testing.T) {
 
 			m := defaultTestModel(curDir)
 
-			res := stripPreviewBorder(m.filePreviewPanelRenderWithDimensions(tt.height+2, tt.width+2))
+			// +4 = 2 borders + 2 horizontal padding, so the text area remains tt.width chars.
+		res := stripPreviewBorder(m.filePreviewPanelRenderWithDimensions(tt.height+2, tt.width+4))
 
 			assert.Equal(t, tt.expectedPreview, res, "filePath = %s", filePath)
 		})
@@ -152,8 +153,8 @@ func TestFilePreviewRenderWithDimensions(t *testing.T) {
 	_ = normalizeOutput("")
 }
 
-// stripPreviewBorder strips ANSI codes and removes the outer border frame from a rendered
-// preview panel, returning just the inner content lines joined by "\n".
+// stripPreviewBorder strips ANSI codes and removes the outer border frame and horizontal
+// padding from a rendered preview panel, returning just the inner text lines joined by "\n".
 func stripPreviewBorder(s string) string {
 	plain := ansi.Strip(s)
 	lines := strings.Split(plain, "\n")
@@ -162,11 +163,11 @@ func stripPreviewBorder(s string) string {
 	}
 	// Remove top and bottom border lines
 	lines = lines[1 : len(lines)-1]
-	// Remove the single left/right border rune from each content line
+	// Remove border(1) + padding(1) on each side from each content line
 	for i, line := range lines {
 		runes := []rune(line)
-		if len(runes) >= 2 {
-			lines[i] = string(runes[1 : len(runes)-1])
+		if len(runes) >= 4 {
+			lines[i] = string(runes[2 : len(runes)-2])
 		}
 	}
 	return strings.Join(lines, "\n")
