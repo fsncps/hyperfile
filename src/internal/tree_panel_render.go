@@ -20,20 +20,31 @@ func (m *model) treePanelRender(idx int) string {
 	focused := m.focusPanel == nonePanelFocus && m.activeFileArea == fileAreaFocus(idx)
 	r := ui.FilePanelRenderer(m.mainPanelHeight+2, tree.width+2, focused)
 
-	// Top bar: path of tree root
-	truncatedRoot := common.TruncateTextBeginning(tree.root, tree.width-2, "...")
-	r.AddLines(common.FilePanelTopDirectoryIcon + common.FilePanelTopPathStyle.Render(truncatedRoot))
+	// Top bar: path left-aligned, depth right-aligned in the same header row.
+	depthStr := "d:" + strconv.Itoa(tree.maxDepth)
+	iconPart := common.FilePanelTopDirectoryIcon
+	iconW := ansi.StringWidth(iconPart)
+	depthW := len(depthStr) // ASCII-safe
+	pathAvail := tree.width - iconW - depthW - 1 // -1 for minimum gap
+	if pathAvail < 4 {
+		pathAvail = 4
+	}
+	truncatedRoot := common.TruncateTextBeginning(tree.root, pathAvail, "...")
+	pad := max(1, tree.width-iconW-ansi.StringWidth(truncatedRoot)-depthW)
+	headerLine := iconPart +
+		common.FilePanelTopPathStyle.Render(truncatedRoot) +
+		strings.Repeat(" ", pad) +
+		common.FilePanelStyle.Render(depthStr)
+	r.AddLines(headerLine)
 	r.AddSection()
-
-	// Depth indicator line
-	r.AddLines(common.FilePanelStyle.Render(" depth:" + strconv.Itoa(tree.maxDepth)))
 
 	if len(tree.nodes) == 0 {
 		r.AddLines(common.FilePanelNoneText)
 		return r.Render()
 	}
 
-	visibleH := panelElementHeight(m.mainPanelHeight)
+	// One fewer overhead row now (depth merged into header), so +1 visible nodes.
+	visibleH := m.mainPanelHeight - 2
 	end := min(tree.renderIdx+visibleH, len(tree.nodes))
 
 	for i := tree.renderIdx; i < end; i++ {

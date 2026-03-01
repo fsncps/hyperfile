@@ -17,7 +17,7 @@ import (
 //nolint:cyclop,funlen // large dispatch switch
 func (m *model) handleTreePanelKey(msg string, idx int) tea.Cmd {
 	tree := &m.treePanels[idx]
-	visibleH := panelElementHeight(m.mainPanelHeight)
+	visibleH := m.mainPanelHeight - 2
 
 	switch {
 
