@@ -20,6 +20,9 @@ make lint          # Run golangci-lint
 make testsuite     # Integration tests (requires Python + tmux)
 make clean         # Remove ./bin/
 
+# Build directly (CGO_ENABLED=0 is required — make targets set this automatically)
+CGO_ENABLED=0 go build -o ./bin/hpf
+
 # Run a single Go test
 go test ./src/internal/... -run TestFunctionName
 
@@ -86,6 +89,10 @@ python testsuite/main.py -d               # Debug mode
 ## Linting
 
 golangci-lint is configured in `.golangci.yaml`. Active complexity linters: `cyclop`, `funlen`, `gocognit`, `gocyclo`, `lll`. Keep new functions short. Add `//nolint: gocyclo,cyclop,funlen // <reason>` only on functions that are inherently large dispatch switches.
+
+`gochecknoglobals` and `gochecknoinits` are enforced. Avoid new global variables and `init()` functions. If a global is truly necessary, add it to one of the designated excluded files: `src/config/fixed_variable.go`, `src/internal/common/style.go`, `src/internal/common/predefined_variable.go`, or `src/internal/common/default_config.go`.
+
+`nolintlint` is strict: directives must name the specific linter(s) and include an explanation (`// reason`), except `funlen`, `gocognit`, and `lll` which allow no explanation. Example: `//nolint:gocyclo // large dispatch switch`.
 
 ## PR Standards
 

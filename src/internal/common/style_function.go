@@ -36,9 +36,14 @@ func FilePanelBorderStyle(height int, width int, filePanelFocussed bool, borderB
 
 // Generate filePreview Box
 func FilePreviewBox(height int, width int) lipgloss.Style {
+	border := GenerateBorder()
 	return lipgloss.NewStyle().
-		Width(width).
-		Height(height).Background(FilePanelBGColor)
+		Border(border).
+		BorderForeground(FilePanelBorderColor).
+		BorderBackground(FilePanelBGColor).
+		Width(width - 2).
+		Height(height - 2).
+		Background(FilePanelBGColor)
 }
 
 // Generate border style for sidebar

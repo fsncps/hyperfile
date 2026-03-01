@@ -142,7 +142,7 @@ func TestFilePreviewRenderWithDimensions(t *testing.T) {
 
 			m := defaultTestModel(curDir)
 
-			res := ansi.Strip(m.filePreviewPanelRenderWithDimensions(tt.height, tt.width))
+			res := stripPreviewBorder(m.filePreviewPanelRenderWithDimensions(tt.height+2, tt.width+2))
 
 			assert.Equal(t, tt.expectedPreview, res, "filePath = %s", filePath)
 		})
@@ -150,6 +150,26 @@ func TestFilePreviewRenderWithDimensions(t *testing.T) {
 
 	// To prevent "normalizeOutput function unused" error.
 	_ = normalizeOutput("")
+}
+
+// stripPreviewBorder strips ANSI codes and removes the outer border frame from a rendered
+// preview panel, returning just the inner content lines joined by "\n".
+func stripPreviewBorder(s string) string {
+	plain := ansi.Strip(s)
+	lines := strings.Split(plain, "\n")
+	if len(lines) < 2 {
+		return plain
+	}
+	// Remove top and bottom border lines
+	lines = lines[1 : len(lines)-1]
+	// Remove the single left/right border rune from each content line
+	for i, line := range lines {
+		runes := []rune(line)
+		if len(runes) >= 2 {
+			lines[i] = string(runes[1 : len(runes)-1])
+		}
+	}
+	return strings.Join(lines, "\n")
 }
 
 // normalizeOutput removes leading empty lines and normalizes line endings

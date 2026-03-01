@@ -536,8 +536,9 @@ func (m *model) renderImagePreview(box lipgloss.Style, itemPath string, previewW
 		return box.Render("\n --- Image preview is disabled ---")
 	}
 
-	// Use the new auto-detection function to choose the best renderer
-	imageRender, err := m.imagePreviewer.ImagePreview(itemPath, previewWidth, previewHeight,
+	// Use the new auto-detection function to choose the best renderer.
+	// Subtract 2 from each dimension to account for the panel border.
+	imageRender, err := m.imagePreviewer.ImagePreview(itemPath, previewWidth-2, previewHeight-2,
 		common.Theme.FilePanelBG, sideAreaWidth)
 	if errors.Is(err, image.ErrFormat) {
 		return box.Render("\n --- " + icon.Error + " Unsupported image formats ---")
