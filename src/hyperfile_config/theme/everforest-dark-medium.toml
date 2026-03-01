@@ -4,14 +4,13 @@
 # 
 # Thanks for all contributor!!
 
-# If you want to make border display just set it same as sidebar background color
 
 # Code syntax highlight theme (you can go to https://github.com/alecthomas/chroma/blob/master/styles to find one you like)
 code_syntax_highlight = "catppuccin-macchiato"
 
 # ========= Border =========
 file_panel_border = "#859289" 
-sidebar_border = "#2D353B" 
+sidebar_border = "#859289" 
 footer_border = "#859289" 
 
 # ========= Border Active =========
