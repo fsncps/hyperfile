@@ -26,6 +26,13 @@ import (
 	stringfunction "github.com/fsncps/hyperfile/src/pkg/string_function"
 )
 
+// previewDebounceDuration is how long the cursor must be idle before the
+// preview panel renders content (prevents expensive renders during fast scrolling).
+const previewDebounceDuration = 500 * time.Millisecond
+
+// previewTickMsg is dispatched after previewDebounceDuration to trigger a re-render.
+type previewTickMsg struct{}
+
 // These represent model's state information, its not a global preperty
 var LastTimeCursorMove = [2]int{int(time.Now().UnixMicro()), 0} //nolint: gochecknoglobals // TODO: Move to model struct
 var hasTrash = true                                             //nolint: gochecknoglobals // TODO: Move to model struct
@@ -85,6 +92,9 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		slog.Debug("Got ModelUpdate message", "id", msg.GetReqID())
 		gotModelUpdateMsg = true
 		updateCmd = msg.ApplyToModel(m)
+
+	case previewTickMsg:
+		// No-op: just triggers View() re-evaluation after the dwell delay.
 
 	default:
 		slog.Debug("Message of type that is not handled")
@@ -186,22 +196,22 @@ func (m *model) recalcPanelWidths() {
 	// sidebarWidth in Config is inner width; rendered sidebar is sidebarWidth+2
 	remaining := m.fullWidth - common.Config.SidebarWidth - 2
 
-	tree1Outer := 0
-	if m.treePanels[0].open {
-		tree1Outer = max(22, remaining*20/100)
-	}
-
 	previewOuter := 0
 	if m.fileModel.filePreview.open {
 		previewOuter = max(22, remaining*35/100)
 	}
 
-	tree2Outer := 0
-	if m.treePanels[1].open {
-		tree2Outer = remaining - tree1Outer - previewOuter
-		if tree2Outer < 22 {
-			tree2Outer = 22
-		}
+	// Both trees share the non-preview space equally.
+	treesTotal := remaining - previewOuter
+	var tree1Outer, tree2Outer int
+	switch {
+	case m.treePanels[0].open && m.treePanels[1].open:
+		tree1Outer = max(22, treesTotal/2)
+		tree2Outer = max(22, treesTotal-tree1Outer)
+	case m.treePanels[0].open:
+		tree1Outer = max(22, treesTotal)
+	case m.treePanels[1].open:
+		tree2Outer = max(22, treesTotal)
 	}
 
 	m.treePanels[0].width = max(0, tree1Outer-2)

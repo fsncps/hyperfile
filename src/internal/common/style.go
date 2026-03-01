@@ -57,6 +57,8 @@ var (
 	HelpMenuTitleStyle  lipgloss.Style
 )
 
+var TreeBranchStyle lipgloss.Style
+
 var (
 	PromptSuccessStyle lipgloss.Style
 	PromptFailureStyle lipgloss.Style
@@ -212,6 +214,9 @@ func LoadThemeConfig() { //nolint: funlen // Variable initialization
 	// Help Menu Style
 	HelpMenuHotkeyStyle = lipgloss.NewStyle().Foreground(helpMenuHotkeyColor).Background(ModalBGColor)
 	HelpMenuTitleStyle = lipgloss.NewStyle().Foreground(helpMenuTitleColor).Background(ModalBGColor)
+
+	// Tree panel branch lines
+	TreeBranchStyle = lipgloss.NewStyle().Foreground(hintColor).Background(FilePanelBGColor)
 
 	// Prompt Style
 	PromptSuccessStyle = lipgloss.NewStyle().Foreground(promptSuccessColor).Background(ModalBGColor)

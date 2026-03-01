@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/charmbracelet/x/exp/term/ansi"
 	"github.com/fsncps/hyperfile/src/config/icon"
 	"github.com/fsncps/hyperfile/src/internal/common"
 	"github.com/fsncps/hyperfile/src/internal/ui"
@@ -24,7 +25,7 @@ func (m *model) treePanelRender(idx int) string {
 	r.AddLines(common.FilePanelTopDirectoryIcon + common.FilePanelTopPathStyle.Render(truncatedRoot))
 	r.AddSection()
 
-	// Depth indicator line (acts as the "search bar" row for spacing)
+	// Depth indicator line
 	r.AddLines(common.FilePanelStyle.Render(" depth:" + strconv.Itoa(tree.maxDepth)))
 
 	if len(tree.nodes) == 0 {
@@ -44,10 +45,10 @@ func (m *model) treePanelRender(idx int) string {
 			cursorChar = icon.Cursor
 		}
 
-		// Indent based on depth
-		indent := strings.Repeat("  ", node.depth)
+		// Branch prefix: ancestor continuation lines + own branch character
+		branchStr := treeNodeBranchPrefix(tree.nodes, i)
 
-		// Expand/collapse indicator
+		// Expand/collapse indicator for directories
 		var expandIndicator string
 		if node.isDir {
 			hasKids := tree.HasChildren(node.path)
@@ -62,8 +63,9 @@ func (m *model) treePanelRender(idx int) string {
 			expandIndicator = " "
 		}
 
-		// Width available for PrettierName (which handles icon+name)
-		overhead := 2 + len(indent) + 2 // cursor+space + indent + indicator+space
+		// Width available for PrettierName (icon + name), accounting for branch prefix.
+		// branchStr is pure ASCII/box-chars so byte length = display width here.
+		overhead := 2 + ansi.StringWidth(branchStr) + 2 // cursor+space + branch + indicator+space
 		nameWidth := tree.width - overhead
 		if nameWidth < 4 {
 			nameWidth = 4
@@ -78,10 +80,45 @@ func (m *model) treePanelRender(idx int) string {
 		)
 
 		line := common.FilePanelCursorStyle.Render(cursorChar+" ") +
-			indent + expandIndicator + " " + rendered
+			common.TreeBranchStyle.Render(branchStr) +
+			expandIndicator + " " + rendered
 
 		r.AddLines(line)
 	}
 
 	return r.Render()
+}
+
+// treeNodeBranchPrefix returns the branch-drawing prefix for node at position idx
+// in the flat nodes slice.  For each ancestor depth level it emits "│  " (the
+// ancestor has more siblings below) or "   " (the ancestor was the last sibling).
+// At the node's own depth it appends "├─ " or "└─ " depending on isLast.
+func treeNodeBranchPrefix(nodes []treeNode, idx int) string {
+	node := nodes[idx]
+	depth := node.depth
+
+	var b strings.Builder
+	// Ancestor continuation lines (one per ancestor level above this node)
+	for d := 0; d < depth; d++ {
+		// Scan backward to find the nearest ancestor at depth d.
+		ancestorIsLast := false
+		for j := idx - 1; j >= 0; j-- {
+			if nodes[j].depth == d {
+				ancestorIsLast = nodes[j].isLast
+				break
+			}
+		}
+		if ancestorIsLast {
+			b.WriteString("   ")
+		} else {
+			b.WriteString("│  ")
+		}
+	}
+	// Own branch connector
+	if node.isLast {
+		b.WriteString("└─ ")
+	} else {
+		b.WriteString("├─ ")
+	}
+	return b.String()
 }

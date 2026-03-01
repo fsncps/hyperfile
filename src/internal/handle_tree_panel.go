@@ -3,6 +3,7 @@ package internal
 import (
 	"log/slog"
 	"slices"
+	"time"
 
 	"github.com/fsncps/hyperfile/src/internal/common"
 
@@ -23,14 +24,31 @@ func (m *model) handleTreePanelKey(msg string, idx int) tea.Cmd {
 	// ---- Tree navigation ----
 	case slices.Contains(common.Hotkeys.ListUp, msg):
 		tree.ListUp(visibleH)
+		return m.startPreviewDebounce()
 
 	case slices.Contains(common.Hotkeys.ListDown, msg):
 		tree.ListDown(visibleH)
+		return m.startPreviewDebounce()
 
 	case slices.Contains(common.Hotkeys.Confirm, msg):
-		// Expand tree dir; also drive file panel navigation for test compat.
+		// Expand directory node in the tree. Also sync the file panel location
+		// (used by file-op infrastructure and navigation tests).
+		// For regular files: only act when in chooser mode (never xdg-open from right arrow).
 		m.treeEnterNode(idx) //nolint:errcheck // returns nil cmd
-		m.enterPanel()
+		panel := m.getFocusedFilePanel()
+		if len(panel.element) > 0 {
+			item := panel.getSelectedItem()
+			if item.directory {
+				if err := panel.updateCurrentFilePanelDir(item.location); err != nil {
+					slog.Error("Error while changing to directory", "error", err, "target", item.location)
+				}
+			} else if variable.ChooserFile != "" {
+				// Chooser-file mode: write the path and quit.
+				if err := m.chooserFileWriteAndQuit(panel.element[panel.cursor].location); err != nil {
+					slog.Error("Error while writing to chooser file", "error", err)
+				}
+			}
+		}
 		return nil
 
 	case slices.Contains(common.Hotkeys.ParentDirectory, msg):
@@ -213,4 +231,14 @@ func (m *model) setTree2PanelActive() {
 func (m *model) syncTreeHiddenState() {
 	m.treePanels[0].showHidden = m.toggleDotFile
 	m.treePanels[1].showHidden = m.toggleDotFile
+}
+
+// startPreviewDebounce records the cursor-moved timestamp and returns a command
+// that fires previewDebounceDuration later, triggering a View() re-evaluation.
+func (m *model) startPreviewDebounce() tea.Cmd {
+	m.lastCursorMovedAt = time.Now()
+	return func() tea.Msg {
+		time.Sleep(previewDebounceDuration)
+		return previewTickMsg{}
+	}
 }

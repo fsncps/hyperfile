@@ -16,10 +16,11 @@ const (
 
 // treeNode is a single entry in the flattened visible tree list.
 type treeNode struct {
-	name  string
-	path  string
-	isDir bool
-	depth int // 0 = direct child of root
+	name   string
+	path   string
+	isDir  bool
+	depth  int  // 0 = direct child of root
+	isLast bool // last sibling in its parent directory (used for branch-line rendering)
 }
 
 // treePanelModel holds all state for the middle tree panel.
@@ -62,16 +63,22 @@ func addTreeNodes(nodes *[]treeNode, dir string, depth, maxDepth int, collapsed 
 		slog.Debug("tree: cannot read dir", "dir", dir, "err", err)
 		return
 	}
+	// Filter hidden entries first so we can correctly identify the last visible sibling.
+	visible := make([]os.DirEntry, 0, len(entries))
 	for _, e := range entries {
 		if len(e.Name()) > 0 && e.Name()[0] == '.' && !showHidden {
 			continue
 		}
+		visible = append(visible, e)
+	}
+	for i, e := range visible {
 		path := filepath.Join(dir, e.Name())
 		node := treeNode{
-			name:  e.Name(),
-			path:  path,
-			isDir: e.IsDir(),
-			depth: depth,
+			name:   e.Name(),
+			path:   path,
+			isDir:  e.IsDir(),
+			depth:  depth,
+			isLast: i == len(visible)-1,
 		}
 		*nodes = append(*nodes, node)
 		if e.IsDir() && depth < maxDepth && !collapsed[path] {

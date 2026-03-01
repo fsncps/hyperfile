@@ -96,6 +96,9 @@ type model struct {
 	firstLoadingComplete bool
 	firstUse             bool
 
+	// Preview dwell debounce: set on cursor movement, used in View to delay rendering.
+	lastCursorMovedAt time.Time
+
 	// This entirely disables metadata fetching. Used in test model
 	disableMetatdata    bool
 	filePanelFocusIndex int

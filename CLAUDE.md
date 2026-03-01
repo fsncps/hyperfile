@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Hyperfile** (binary: `hpf`) is a terminal file manager written in Go, using the [Bubble Tea](https://github.com/charmbracelet/bubbletea) TUI framework. It uses a fixed 3-panel layout: a directory-only folder panel, a tree panel, and a file preview panel.
+**Hyperfile** (binary: `hpf`) is a terminal file manager written in Go, using the [Bubble Tea](https://github.com/charmbracelet/bubbletea) TUI framework. It uses a fixed 3-panel layout: two independent filesystem tree panels and a file preview panel.
 
 ## Common Commands
 
@@ -48,10 +48,10 @@ python testsuite/main.py -d               # Debug mode
   - **`ui/`** — Bubble Tea sub-models: `notify/`, `prompt/`, `processbar/`, `metadata/`, `sidebar/`, `rendering/`
   - **`model.go`** — Central Bubble Tea model and main `Update` loop; `recalcPanelWidths()` controls all panel widths
   - **`model_render.go`** — `View()` rendering; `getPreviewItemPath()` determines what the preview shows
-  - **`key_function.go`** — Hotkey dispatch; `mainKey()` routes to tree panel or folder panel based on `activeFileArea`
-  - **`tree_panel.go`** — Tree panel state and logic (`treePanelModel`, `buildTreeNodes`, expand/collapse)
+  - **`key_function.go`** — Hotkey dispatch; `mainKey()` routes all file-area input to the active tree panel via `handleTreePanelKey`
+  - **`tree_panel.go`** — Tree panel state, types (`treePanelModel`, `fileAreaFocus`), and logic (`buildTreeNodes`, expand/collapse)
   - **`tree_panel_render.go`** — Tree panel rendering
-  - **`handle_tree_panel.go`** — Tree panel key handlers; `setTreePanelActive()` / `setFolderPanelActive()`
+  - **`handle_tree_panel.go`** — Tree panel key handlers; `setTree1PanelActive()` / `setTree2PanelActive()`
   - **`file_operations.go`** — High-level file I/O (copy, paste, delete, compress, extract)
 - **`src/pkg/`** — Independent packages: `file_preview/` (image/text rendering), `string_function/`
 - **`src/hyperfile_config/`** — Embedded default configs (TOML) for config, hotkeys, and themes
@@ -60,7 +60,7 @@ python testsuite/main.py -d               # Debug mode
 
 **Bubble Tea MVC:** `model.go` holds all state. Messages flow through `Update()`, rendering is in `View()`. Sub-panels (sidebar, processbar, prompt, metadata) are nested structs.
 
-**3-Panel Layout:** `fileModel.filePanels[0]` is always the folder panel (left, `dirOnly: true` — directories only). `treePanelModel` is the middle panel, rooted at whatever directory the folder panel cursor sits on (synced via `syncTreeRoot()` in `updateModelStateAfterMsg`). Width split: folder ≈ 20%, preview ≈ 35%, tree gets the rest, computed in `recalcPanelWidths()`. Focus switches between panels with `activeFileArea` (`folderPanelActive` | `treePanelActive`).
+**3-Panel Layout:** `treePanels[0]` (left, tree1) and `treePanels[1]` (right, tree2) are two independent `treePanelModel` instances — both navigate files and directories freely. The right panel gets the preview side. Width split: tree1 ≈ 20%, preview ≈ 35%, tree2 gets the rest, computed in `recalcPanelWidths()`. Focus switches between panels with `activeFileArea` (`tree1PanelActive` | `tree2PanelActive`). Both trees start at the same root on launch but navigate independently. `getPreviewItemPath()` reads from the currently active tree panel. `fileModel.filePanels` is preserved for file-operation infrastructure but not rendered directly.
 
 **Backend Interface:** The `backend` package exposes interfaces so unit tests can test file-operation logic without real filesystem calls. UI code imports `backend`; `backend` never imports UI.
 
@@ -81,8 +81,8 @@ python testsuite/main.py -d               # Debug mode
 
 ### Testing Notes
 
-- `defaultTestModel()` in `test_utils.go` overrides `dirOnly=false` for all panels so existing tests that navigate to files still work.
-- `createNewFilePanel()` and `closeFilePanel()` are kept for test compatibility (no keyboard shortcuts expose them in the real app).
+- `defaultTestModel()` in `test_utils.go` sets up both tree panels and disables metadata fetching.
+- `createNewFilePanel()` and `closeFilePanel()` are kept for test compatibility (no keyboard shortcuts expose them in the real app). `fileModel.filePanels` is used by file-op tests via `getFocusedFilePanel()`.
 - `NewTestTeaProgWithEventLoop` runs a real Bubble Tea event loop in a goroutine; use `assert.Eventually` for async effects. `SendKeyDirectly` bypasses the event loop and calls `Update()` directly — useful for setup, but the model inside `prog` and `p.m` can diverge if used after the loop has started.
 - Pre-existing failures in CI: `ui/metadata` (exiftool not installed), `ui/prompt/TestModel_HandleUpdate` (unrelated regression).
 

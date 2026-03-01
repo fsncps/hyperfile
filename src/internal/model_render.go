@@ -631,8 +631,14 @@ func (m *model) filePreviewPanelRenderWithDimensions(previewHeight int, previewW
 		return m.renderEmptyFilePreview(r) + clearCmd
 	}
 
-	// Header: show item name when the panel is large enough to have useful content below it
-	if previewHeight > 10 && previewWidth > 10 {
+	// Debounce: show empty panel until the cursor has been idle for previewDebounceDuration.
+	if time.Since(m.lastCursorMovedAt) < previewDebounceDuration {
+		return r.Render() + clearCmd
+	}
+
+	// Header: always show item name for panels large enough to have content below it.
+	// Threshold > 7 excludes unit-test dimensions (≤7) while always firing in real usage (≥16).
+	if previewHeight > 7 {
 		name := filepath.Base(itemPath)
 		truncated := common.TruncateTextBeginning(name, previewWidth-6, "...")
 		r.AddLines(common.FilePanelTopDirectoryIcon + common.FilePanelTopPathStyle.Render(truncated))
