@@ -525,9 +525,11 @@ func (m *model) renderDirectoryPreview(r *rendering.Renderer, itemPath string, p
 	return r.Render()
 }
 
-// Helper function to handle image preview
-func (m *model) renderImagePreview(box lipgloss.Style, itemPath string, previewWidth,
-	previewHeight int, sideAreaWidth int) string {
+// renderImagePreview renders an image file into the preview panel.
+// r already has the header section added (if applicable); imageW/imageH are the
+// cell dimensions available for the image content; headerRows is 0 or 2.
+func (m *model) renderImagePreview(r *rendering.Renderer, box lipgloss.Style, itemPath string,
+	imageW, imageH, sideAreaWidth, headerRows int, clearCmd string) string {
 	if !m.fileModel.filePreview.open {
 		return box.Render("\n --- Preview panel is closed ---")
 	}
@@ -536,9 +538,7 @@ func (m *model) renderImagePreview(box lipgloss.Style, itemPath string, previewW
 		return box.Render("\n --- Image preview is disabled ---")
 	}
 
-	// Use the new auto-detection function to choose the best renderer.
-	// Subtract 2 from each dimension to account for the panel border.
-	imageRender, err := m.imagePreviewer.ImagePreview(itemPath, previewWidth-2, previewHeight-2,
+	imageRender, err := m.imagePreviewer.ImagePreview(itemPath, imageW, imageH,
 		common.Theme.FilePanelBG, sideAreaWidth)
 	if errors.Is(err, image.ErrFormat) {
 		return box.Render("\n --- " + icon.Error + " Unsupported image formats ---")
@@ -549,15 +549,19 @@ func (m *model) renderImagePreview(box lipgloss.Style, itemPath string, previewW
 		return box.Render("\n --- " + icon.Error + " Error convert image to ansi ---")
 	}
 
-	// Check if this looks like Kitty protocol output (starts with escape sequences)
-	// For Kitty protocol, avoid using lipgloss alignment to prevent layout drift
 	if strings.HasPrefix(imageRender, "\x1b_G") {
-		rendered := common.FilePreviewBox(previewHeight, previewWidth).Render(imageRender)
-		return rendered
+		// Kitty protocol draws at cursor position via terminal escape sequences.
+		// Emit the full panel first (header + empty rows + borders), then use an
+		// absolute cursor-position command to place the image below the header.
+		// imageStartRow (1-indexed) = top-border(1) + headerRows + 1
+		// imageStartCol (1-indexed) = sideAreaWidth(left-border col) + 1
+		positionCmd := fmt.Sprintf("\x1b[%d;%dH", headerRows+2, sideAreaWidth+1)
+		return r.Render() + positionCmd + imageRender
 	}
 
-	// For ANSI output, we can safely use vertical alignment
-	return box.AlignVertical(lipgloss.Center).AlignHorizontal(lipgloss.Center).Render(imageRender)
+	// ANSI art: each line is colored characters that fit within the content width.
+	r.AddLines(imageRender)
+	return r.Render() + clearCmd
 }
 
 // Helper function to handle text file preview
@@ -668,7 +672,15 @@ func (m *model) filePreviewPanelRenderWithDimensions(previewHeight int, previewW
 	}
 
 	if isImageFile(itemPath) {
-		return m.renderImagePreview(box, itemPath, previewWidth, previewHeight, m.fullWidth-previewWidth+1)
+		// headerRows = number of lines consumed by the header section (0 when header not shown).
+		headerRows := 0
+		if previewHeight > 7 {
+			headerRows = 2 // 1 header line + 1 section divider
+		}
+		imageW := previewWidth - 4              // 1-col margin each side inside border
+		imageH := previewHeight - 2 - headerRows // inner height minus header
+		sideAreaWidth := m.fullWidth - previewWidth + 1
+		return m.renderImagePreview(r, box, itemPath, imageW, imageH, sideAreaWidth, headerRows, clearCmd)
 	}
 
 	return m.renderTextPreview(r, box, itemPath, previewWidth, previewHeight) + clearCmd
