@@ -3,6 +3,7 @@ package internal
 import (
 	"log/slog"
 	"slices"
+	"unicode"
 
 	"github.com/fsncps/hyperfile/src/internal/common"
 	"github.com/fsncps/hyperfile/src/internal/ui/notify"
@@ -49,9 +50,6 @@ func (m *model) mainKey(msg string) tea.Cmd { //nolint: gocyclo,cyclop,funlen //
 
 	case slices.Contains(common.Hotkeys.PageDown, msg):
 		m.fileModel.filePanels[m.filePanelFocusIndex].pgDown(m.mainPanelHeight)
-
-	case slices.Contains(common.Hotkeys.ChangePanelMode, msg):
-		m.getFocusedFilePanel().changeFilePanelMode()
 
 	case slices.Contains(common.Hotkeys.NextFilePanel, msg):
 		m.nextFilePanel()
@@ -161,11 +159,27 @@ func (m *model) normalAndBrowserModeKey(msg string) tea.Cmd {
 		return nil
 	}
 
+	panel := &m.fileModel.filePanels[m.filePanelFocusIndex]
+
+	// esc clears the passive filter when active
+	if msg == "esc" {
+		if panel.searchBar.Value() != "" {
+			panel.searchBar.SetValue("")
+		}
+		return nil
+	}
+
 	switch {
 	case slices.Contains(common.Hotkeys.Confirm, msg):
 		m.enterPanel()
 	case slices.Contains(common.Hotkeys.ParentDirectory, msg):
-		m.parentDirectory()
+		// backspace removes filter chars when filter is active; otherwise navigates up
+		if msg == "backspace" && panel.searchBar.Value() != "" {
+			runes := []rune(panel.searchBar.Value())
+			panel.searchBar.SetValue(string(runes[:len(runes)-1]))
+		} else {
+			m.parentDirectory()
+		}
 	case slices.Contains(common.Hotkeys.DeleteItems, msg):
 		return m.getDeleteTriggerCmd()
 	case slices.Contains(common.Hotkeys.CopyItems, msg):
@@ -174,12 +188,17 @@ func (m *model) normalAndBrowserModeKey(msg string) tea.Cmd {
 		m.copySingleItem(true)
 	case slices.Contains(common.Hotkeys.FilePanelItemRename, msg):
 		m.panelItemRename()
-	case slices.Contains(common.Hotkeys.SearchBar, msg):
-		m.searchBarFocus()
 	case slices.Contains(common.Hotkeys.CopyPath, msg):
 		m.copyPath()
 	case slices.Contains(common.Hotkeys.CopyPWD, msg):
 		m.copyPWD()
+	default:
+		// Passive always-on filter: any printable single character appends to the filter
+		runes := []rune(msg)
+		if len(runes) == 1 && !unicode.IsControl(runes[0]) {
+			panel.searchBar.Width = m.fileModel.width - 4
+			panel.searchBar.SetValue(panel.searchBar.Value() + msg)
+		}
 	}
 	return nil
 }
@@ -298,7 +317,7 @@ func (m *model) helpMenuKey(msg string) {
 		m.helpMenuListUp()
 	case slices.Contains(common.Hotkeys.ListDown, msg):
 		m.helpMenuListDown()
-	case slices.Contains(common.Hotkeys.Quit, msg):
+	case msg == "esc", slices.Contains(common.Hotkeys.Quit, msg):
 		m.quitHelpMenu()
 	}
 }

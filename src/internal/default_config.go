@@ -181,11 +181,6 @@ func getHelpMenuData() []helpMenuModalData { //nolint: funlen // This should be 
 			hotkeyWorkType: globalType,
 		},
 		{
-			hotkey:         common.Hotkeys.ChangePanelMode,
-			description:    "Change between selection mode or normal mode",
-			hotkeyWorkType: globalType,
-		},
-		{
 			hotkey:         common.Hotkeys.PinnedDirectory,
 			description:    "Pin or Unpin folder to sidebar (can be auto saved)",
 			hotkeyWorkType: globalType,

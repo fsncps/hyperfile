@@ -9,7 +9,7 @@ dev:
 
 # Build only
 build:
-	@FORCE_COLOR=1 ./dev.sh --skip-tests
+	@CGO_ENABLED=0 go build -o ./bin/hpf
 
 # Run tests
 test:
@@ -24,8 +24,10 @@ testsuite:
 	@FORCE_COLOR=1 ./dev.sh --testsuite
 
 # Install binary to ~/.local/bin
-install: build
-	@cp ./bin/hpf ~/.local/bin/hpf
+install:
+	@CGO_ENABLED=0 go build -o ./bin/hpf
+	@install -m 755 ./bin/hpf ~/.local/bin/hpf
+	@echo "Installed ./bin/hpf → ~/.local/bin/hpf"
 
 # Clean build artifacts
 clean:
