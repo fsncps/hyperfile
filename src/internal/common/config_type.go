@@ -101,7 +101,8 @@ type ConfigType struct {
 
 	Metadata          bool `toml:"metadata" comment:"\n==========PLUGINS========== #\nPlugins means that you need to install some external dependencies to use them.\n\nShow more detailed metadata, please install exiftool before enabling this plugin!"`
 	EnableMD5Checksum bool `toml:"enable_md5_checksum" comment:"Enable MD5 checksum generation for files"`
-	ZoxideSupport     bool `toml:"zoxide_support" comment:"Zoxide support for the fast navigation"`
+	ZoxideSupport     bool   `toml:"zoxide_support" comment:"Zoxide support for the fast navigation"`
+	DNDTool           string `toml:"dnd_tool" comment:"Tool used for drag-and-drop to external apps. X11: \"dragon\", Wayland: \"ripdrag\"."`
 }
 
 // GetIgnoreMissingFields reports whether warnings about missing TOML fields should be ignored.
@@ -137,6 +138,7 @@ type HotkeysType struct {
 	PasteItems  []string `toml:"paste_items"`
 	CutItems    []string `toml:"cut_items"`
 	DeleteItems []string `toml:"delete_items"`
+	DragItems   []string `toml:"drag_items"`
 
 	ExtractFile  []string `toml:"extract_file" comment:"compress and extract"`
 	CompressFile []string `toml:"compress_file"`

@@ -90,3 +90,6 @@ enable_md5_checksum = false
 #
 # Zoxide support for the fast navigation
 zoxide_support = false
+#
+# Tool used for drag-and-drop to external apps. X11: "dragon", Wayland: "ripdrag".
+dnd_tool = "dragon"
