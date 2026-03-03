@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/exp/term/ansi"
 	"github.com/fsncps/hyperfile/src/config/icon"
 	"github.com/fsncps/hyperfile/src/internal/common"
@@ -48,6 +49,14 @@ func (m *model) treePanelRender(idx int) string {
 		return r.Render()
 	}
 
+	// Build clipboard set for highlighting copied/cut items.
+	clipSet := make(map[string]bool, len(m.copyItems.items))
+	for _, p := range m.copyItems.items {
+		clipSet[p] = true
+	}
+	const clipCopyBG = lipgloss.Color("#0A1928") // faint blue
+	const clipCutBG = lipgloss.Color("#281400")  // faint orange
+
 	// One fewer overhead row now (depth merged into header), so +1 visible nodes.
 	visibleH := m.mainPanelHeight - 2
 	end := min(tree.renderIdx+visibleH, len(tree.nodes))
@@ -69,9 +78,9 @@ func (m *model) treePanelRender(idx int) string {
 		if node.isDir {
 			hasKids := tree.HasChildren(node.path)
 			if hasKids && tree.IsExpanded(node.path) && node.depth < tree.maxDepth {
-				expandIndicator = "▾"
+				expandIndicator = ""
 			} else if hasKids {
-				expandIndicator = "▸"
+				expandIndicator = ""
 			} else {
 				expandIndicator = " "
 			}
@@ -88,15 +97,27 @@ func (m *model) treePanelRender(idx int) string {
 		}
 
 		isSelected := tree.selected[node.path]
+		dragChar := " "
+		if i == tree.cursor || isSelected {
+			dragChar = "⠿"
+		}
+		bgColor := common.FilePanelBGColor
+		if clipSet[node.path] {
+			if m.copyItems.cut {
+				bgColor = clipCutBG
+			} else {
+				bgColor = clipCopyBG
+			}
+		}
 		rendered := common.PrettierName(
 			node.name,
 			nameWidth,
 			node.isDir,
 			isSelected,
-			common.FilePanelBGColor,
+			bgColor,
 		)
 
-		line := common.FilePanelCursorStyle.Render(cursorChar+" ") +
+		line := common.FilePanelCursorStyle.Render(cursorChar+dragChar) +
 			common.TreeBranchStyle.Render(branchStr) +
 			expandIndicator + " " + rendered
 
@@ -126,16 +147,16 @@ func treeNodeBranchPrefix(nodes []treeNode, idx int) string {
 			}
 		}
 		if ancestorIsLast {
-			b.WriteString("   ")
+			b.WriteString("  ")
 		} else {
-			b.WriteString("│  ")
+			b.WriteString("│ ")
 		}
 	}
 	// Own branch connector
 	if node.isLast {
-		b.WriteString("└─ ")
+		b.WriteString("╰─")
 	} else {
-		b.WriteString("├─ ")
+		b.WriteString("├─")
 	}
 	return b.String()
 }

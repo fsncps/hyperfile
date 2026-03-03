@@ -587,13 +587,6 @@ func (m *model) dragItems(tree *treePanelModel) tea.Cmd {
 		paths = []string{node.path}
 	}
 
-	var args []string
-	if tool == "dragon" {
-		args = append([]string{"--and-exit"}, paths...)
-	} else {
-		args = paths
-	}
-
 	if _, err := exec.LookPath(tool); err != nil {
 		reqID := m.ioReqCnt
 		m.ioReqCnt++
@@ -604,6 +597,13 @@ func (m *model) dragItems(tree *treePanelModel) tea.Cmd {
 				reqID,
 			)
 		}
+	}
+
+	var args []string
+	if tool == "dragon" {
+		args = append([]string{"--on-top", "--and-exit"}, paths...)
+	} else {
+		args = paths
 	}
 
 	cmd := exec.Command(tool, args...)
@@ -618,20 +618,5 @@ func (m *model) dragItems(tree *treePanelModel) tea.Cmd {
 			)
 		}
 	}
-
-	var label string
-	if len(paths) == 1 {
-		label = filepath.Base(paths[0])
-	} else {
-		label = fmt.Sprintf("%d files", len(paths))
-	}
-	reqID := m.ioReqCnt
-	m.ioReqCnt++
-	return func() tea.Msg {
-		return NewNotifyModalMsg(
-			notify.New(true, "Dragging "+label,
-				"Find the drag window and drop on target.", notify.NoAction),
-			reqID,
-		)
-	}
+	return nil
 }

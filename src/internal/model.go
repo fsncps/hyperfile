@@ -80,7 +80,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.handleWindowResize(msg)
 	case tea.MouseMsg:
-		m.handleMouseMsg(msg)
+		inputCmd = m.handleMouseMsg(msg)
 	case tea.KeyMsg:
 		inputCmd = m.handleKeyInput(msg)
 	case ModelUpdateMessage:
@@ -114,13 +114,45 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(sidebarCmd, inputCmd, updateCmd, panelCmd, metadataCmd)
 }
 
-func (m *model) handleMouseMsg(msg tea.MouseMsg) {
+func (m *model) handleMouseMsg(msg tea.MouseMsg) tea.Cmd {
 	msgStr := msg.String()
-	if msgStr == "wheel up" || msgStr == "wheel down" {
+	switch {
+	case msgStr == "wheel up" || msgStr == "wheel down":
 		wheelMainAction(msgStr, m)
-	} else {
+	case msgStr == "left press":
+		return m.handleMouseLeftPress(msg.X, msg.Y)
+	default:
 		slog.Debug("Mouse event of type that is not handled", "msg", msgStr)
 	}
+	return nil
+}
+
+// handleMouseLeftPress fires dragItems when the user clicks the drag handle
+// column (first 3 chars of a tree panel's content area).
+func (m *model) handleMouseLeftPress(x, y int) tea.Cmd {
+	for idx := range 2 {
+		if !m.treePanels[idx].open {
+			continue
+		}
+		start := m.treePanelStartX(idx)
+		end := start + m.treePanels[idx].width + 2
+		if x < start || x >= end {
+			continue
+		}
+		// Columns 1–3 relative to panel start = left border + cursor + dragChar
+		relX := x - start
+		if relX < 1 || relX > 3 {
+			return nil
+		}
+		// Found click in drag handle area of panel idx — switch focus and drag
+		if idx == 0 {
+			m.setTree1PanelActive()
+		} else {
+			m.setTree2PanelActive()
+		}
+		return m.dragItems(&m.treePanels[idx])
+	}
+	return nil
 }
 
 func (m *model) updateModelStateAfterMsg() {
@@ -223,6 +255,19 @@ func (m *model) recalcPanelWidths() {
 	if m.fileModel.maxFilePanel < 1 {
 		m.fileModel.maxFilePanel = 1
 	}
+}
+
+// treePanelStartX returns the terminal column where tree panel idx starts (outer left border).
+func (m *model) treePanelStartX(idx int) int {
+	sidebarOuter := common.Config.SidebarWidth + 2
+	if idx == 0 {
+		return sidebarOuter
+	}
+	tree1OuterW := 0
+	if m.treePanels[0].open {
+		tree1OuterW = m.treePanels[0].width + 2
+	}
+	return sidebarOuter + tree1OuterW
 }
 
 // Set file preview panel Widht to width. Assure that
