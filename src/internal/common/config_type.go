@@ -59,6 +59,10 @@ type ThemeType struct {
 
 	HelpMenuHotkey string `toml:"help_menu_hotkey"`
 	HelpMenuTitle  string `toml:"help_menu_title"`
+
+	// Optional icon color overrides. Keys match entries in icon.Icons / icon.Folders
+	// (e.g. "go", "audio", "folder", ".git"). Missing keys keep their defaults.
+	IconColors map[string]string `toml:"icon_colors"`
 }
 
 // Configuration settings

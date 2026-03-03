@@ -75,3 +75,19 @@ func GetCopyOrCutIcon(cut bool) string {
 	}
 	return Copy
 }
+
+// ApplyIconTheme overrides icon colors from a theme's [icon_colors] map.
+// Keys match entries in Icons or Folders (e.g. "go", "audio", "folder", ".git").
+// Unknown keys and nil/empty map are silently ignored; glyphs are never changed.
+func ApplyIconTheme(colors map[string]string) {
+	for key, color := range colors {
+		if s, ok := Icons[key]; ok {
+			s.Color = color
+			Icons[key] = s
+		}
+		if s, ok := Folders[key]; ok {
+			s.Color = color
+			Folders[key] = s
+		}
+	}
+}
