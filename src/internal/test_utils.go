@@ -202,6 +202,25 @@ func verifySuccessfulPasteResults(t *testing.T, targetDir string, expectedDestFi
 	// TODO: Need to add a test to verify clipboard state.
 }
 
+// keyMsg converts a key name string to a tea.KeyMsg with the correct Type set.
+// Handles special keys (shift+down, down, up, etc.) as well as rune keys.
+func keyMsg(key string) tea.KeyMsg {
+	specialKeys := map[string]tea.KeyType{
+		"up":         tea.KeyUp,
+		"down":       tea.KeyDown,
+		"shift+up":   tea.KeyShiftUp,
+		"shift+down": tea.KeyShiftDown,
+		"enter":      tea.KeyEnter,
+		"esc":        tea.KeyEscape,
+		"tab":        tea.KeyTab,
+		"backspace":  tea.KeyBackspace,
+	}
+	if kt, ok := specialKeys[key]; ok {
+		return tea.KeyMsg{Type: kt}
+	}
+	return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(key)}
+}
+
 // -------------- Other utilities
 
 // Helper function to find item index in panel by name

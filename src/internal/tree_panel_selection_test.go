@@ -9,6 +9,28 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestHandleTreePanelKey_ShiftDown_SelectsRange(t *testing.T) {
+	m := defaultTestModel(populatedTempDir(t))
+	tree := &m.treePanels[0]
+	require.Greater(t, len(tree.nodes), 2)
+
+	_, _ = TeaUpdate(m, keyMsg("shift+down"))
+	assert.True(t, tree.HasSelection(), "shift+down should create a selection")
+	assert.Equal(t, 1, tree.cursor)
+}
+
+func TestHandleTreePanelKey_PlainDown_ClearsSelection(t *testing.T) {
+	m := defaultTestModel(populatedTempDir(t))
+	tree := &m.treePanels[0]
+	require.Greater(t, len(tree.nodes), 2)
+
+	_, _ = TeaUpdate(m, keyMsg("shift+down"))
+	require.True(t, tree.HasSelection())
+
+	_, _ = TeaUpdate(m, keyMsg("down"))
+	assert.False(t, tree.HasSelection())
+}
+
 // populatedTempDir creates a tempdir with enough entries for selection tests.
 func populatedTempDir(t *testing.T) string {
 	t.Helper()

@@ -179,10 +179,12 @@ func (m *model) handleTreePanelKey(msg string, idx int) tea.Cmd {
 		m.selectAllItem()
 
 	case slices.Contains(common.Hotkeys.FilePanelSelectModeItemsSelectUp, msg):
-		m.fileModel.filePanels[m.filePanelFocusIndex].itemSelectUp(m.mainPanelHeight)
+		tree.ShiftListUp(visibleH)
+		return m.startPreviewDebounce()
 
 	case slices.Contains(common.Hotkeys.FilePanelSelectModeItemsSelectDown, msg):
-		m.fileModel.filePanels[m.filePanelFocusIndex].itemSelectDown(m.mainPanelHeight)
+		tree.ShiftListDown(visibleH)
+		return m.startPreviewDebounce()
 
 	case slices.Contains(common.Hotkeys.NextFilePanel, msg):
 		m.nextFilePanel()
