@@ -300,6 +300,7 @@ func PopulateGlobalConfigs() error {
 	// Populate fixed variables
 	LoadInitialPrerenderedVariables()
 	icon.InitIcon(Config.Nerdfont, Theme.DirectoryIconColor)
+	icon.ApplyIconTheme(Theme.IconColors)
 	LoadPrerenderedVariables()
 	return nil
 }
