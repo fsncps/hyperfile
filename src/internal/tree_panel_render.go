@@ -97,10 +97,6 @@ func (m *model) treePanelRender(idx int) string {
 		}
 
 		isSelected := tree.selected[node.path]
-		dragChar := " "
-		if i == tree.cursor || isSelected {
-			dragChar = "⠿"
-		}
 		bgColor := common.FilePanelBGColor
 		if clipSet[node.path] {
 			if m.copyItems.cut {
@@ -117,7 +113,7 @@ func (m *model) treePanelRender(idx int) string {
 			bgColor,
 		)
 
-		line := common.FilePanelCursorStyle.Render(cursorChar+dragChar) +
+		line := common.FilePanelCursorStyle.Render(cursorChar+" ") +
 			common.TreeBranchStyle.Render(branchStr) +
 			expandIndicator + " " + rendered
 
