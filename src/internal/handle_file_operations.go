@@ -609,6 +609,29 @@ func (m *model) dragItems(tree *treePanelModel) tea.Cmd {
 	cmd := exec.Command(tool, args...)
 	if err := cmd.Start(); err != nil {
 		slog.Error("dragItems: failed to start dnd tool", "tool", tool, "error", err)
+		reqID := m.ioReqCnt
+		m.ioReqCnt++
+		return func() tea.Msg {
+			return NewNotifyModalMsg(
+				notify.New(true, "Drag failed", err.Error(), notify.NoAction),
+				reqID,
+			)
+		}
 	}
-	return nil
+
+	var label string
+	if len(paths) == 1 {
+		label = filepath.Base(paths[0])
+	} else {
+		label = fmt.Sprintf("%d files", len(paths))
+	}
+	reqID := m.ioReqCnt
+	m.ioReqCnt++
+	return func() tea.Msg {
+		return NewNotifyModalMsg(
+			notify.New(true, "Dragging "+label,
+				"Find the drag window and drop on target.", notify.NoAction),
+			reqID,
+		)
+	}
 }
