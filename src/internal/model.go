@@ -127,30 +127,44 @@ func (m *model) handleMouseMsg(msg tea.MouseMsg) tea.Cmd {
 	return nil
 }
 
-// handleMouseLeftPress fires dragItems when the user clicks the drag handle
-// column (first 3 chars of a tree panel's content area).
+// handleMouseLeftPress fires drag for the tree row that was clicked.
+// Row calculation: 3 overhead rows (top border + header + divider), then items
+// offset by tree.renderIdx. If the panel has a shift-selection, drags the
+// selection regardless of which row was clicked.
 func (m *model) handleMouseLeftPress(x, y int) tea.Cmd {
+	const headerRows = 3
 	for idx := range 2 {
 		if !m.treePanels[idx].open {
 			continue
 		}
 		start := m.treePanelStartX(idx)
 		end := start + m.treePanels[idx].width + 2
-		if x < start || x >= end {
+		// +1 skips the left border; anything inside the content area counts.
+		if x < start+1 || x >= end {
 			continue
 		}
-		// Columns 1–3 relative to panel start = left border + cursor + dragChar
-		relX := x - start
-		if relX < 1 || relX > 3 {
+
+		tree := &m.treePanels[idx]
+		if len(tree.nodes) == 0 {
 			return nil
 		}
-		// Found click in drag handle area of panel idx — switch focus and drag
+
+		clickedIdx := tree.renderIdx + (y - headerRows)
+		if clickedIdx < 0 || clickedIdx >= len(tree.nodes) {
+			return nil
+		}
+
 		if idx == 0 {
 			m.setTree1PanelActive()
 		} else {
 			m.setTree2PanelActive()
 		}
-		return m.dragItems(&m.treePanels[idx])
+
+		// Use selection if one exists, otherwise drag the clicked row.
+		if tree.HasSelection() {
+			return m.dragPaths(tree.SelectedPaths())
+		}
+		return m.dragPaths([]string{tree.nodes[clickedIdx].path})
 	}
 	return nil
 }
