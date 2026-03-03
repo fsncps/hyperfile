@@ -584,23 +584,14 @@ func (m *model) dragItems(tree *treePanelModel) tea.Cmd {
 }
 
 // dragPaths initiates drag-and-drop for the given file paths.
-// On X11 ($DISPLAY set) uses the native XDND implementation.
-// Falls back to an external dnd_tool (e.g. dragon) otherwise.
+// On X11 ($DISPLAY set): launches dragon and auto-clicks its window via XTest
+// so the user can drag to the target immediately.
+// On non-X11: launches the configured dnd_tool directly.
 func (m *model) dragPaths(paths []string) tea.Cmd {
 	if len(paths) == 0 {
 		return nil
 	}
 
-	if os.Getenv("DISPLAY") != "" {
-		go func() {
-			if err := xdnd.Drag(paths); err != nil {
-				slog.Error("xdnd drag failed", "error", err)
-			}
-		}()
-		return nil
-	}
-
-	// Non-X11 fallback: external tool
 	tool := common.Config.DNDTool
 	if tool == "" {
 		tool = "dragon"
@@ -616,6 +607,18 @@ func (m *model) dragPaths(paths []string) tea.Cmd {
 			)
 		}
 	}
+
+	if os.Getenv("DISPLAY") != "" {
+		// X11: seamless — dragon opens, cursor warps to it, XTest clicks it.
+		go func() {
+			if err := xdnd.DragonSeamless(tool, paths); err != nil {
+				slog.Error("dragon seamless failed", "error", err)
+			}
+		}()
+		return nil
+	}
+
+	// Non-X11 (Wayland etc): plain tool launch.
 	var args []string
 	if tool == "dragon" {
 		args = append([]string{"--on-top", "--and-exit"}, paths...)
