@@ -29,8 +29,9 @@ type treePanelModel struct {
 	nodes      []treeNode      // flattened visible list rebuilt on change
 	cursor     int
 	renderIdx  int
-	maxDepth   int             // auto-expand depth; 0 means root children only
-	collapsed  map[string]bool // paths manually collapsed by user
+	maxDepth   int             // auto-expand depth on rebuild; does not limit manual expansion
+	collapsed  map[string]bool // paths manually collapsed (takes priority over depth)
+	expanded   map[string]bool // paths manually expanded beyond maxDepth
 	selected   map[string]bool // paths currently selected; nil = no selection
 	anchor     int             // cursor idx when shift-select began; -1 = unset
 	showHidden bool            // mirrors model.toggleDotFile
@@ -44,23 +45,26 @@ func defaultTreePanel(root string) treePanelModel {
 		root:      root,
 		maxDepth:  2,
 		collapsed: make(map[string]bool),
+		expanded:  make(map[string]bool),
 		anchor:    -1,
 		open:      true,
 		focusType: noneFocus,
 	}
-	t.nodes = buildTreeNodes(root, t.maxDepth, t.collapsed, t.showHidden)
+	t.nodes = buildTreeNodes(root, t.maxDepth, t.collapsed, t.expanded, t.showHidden)
 	return t
 }
 
-// buildTreeNodes recursively walks root up to maxDepth, honouring collapsed set.
+// buildTreeNodes recursively walks root, honouring collapsed/expanded sets and maxDepth.
+// maxDepth controls auto-expansion on rebuild; manually expanded dirs (expanded map)
+// are shown regardless of depth. collapsed always takes priority.
 // Returns a flat list in display order.
-func buildTreeNodes(root string, maxDepth int, collapsed map[string]bool, showHidden bool) []treeNode {
+func buildTreeNodes(root string, maxDepth int, collapsed, expanded map[string]bool, showHidden bool) []treeNode {
 	nodes := make([]treeNode, 0, 64)
-	addTreeNodes(&nodes, root, 0, maxDepth, collapsed, showHidden)
+	addTreeNodes(&nodes, root, 0, maxDepth, collapsed, expanded, showHidden)
 	return nodes
 }
 
-func addTreeNodes(nodes *[]treeNode, dir string, depth, maxDepth int, collapsed map[string]bool, showHidden bool) {
+func addTreeNodes(nodes *[]treeNode, dir string, depth, maxDepth int, collapsed, expanded map[string]bool, showHidden bool) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		slog.Debug("tree: cannot read dir", "dir", dir, "err", err)
@@ -84,8 +88,9 @@ func addTreeNodes(nodes *[]treeNode, dir string, depth, maxDepth int, collapsed 
 			isLast: i == len(visible)-1,
 		}
 		*nodes = append(*nodes, node)
-		if e.IsDir() && depth < maxDepth && !collapsed[path] {
-			addTreeNodes(nodes, path, depth+1, maxDepth, collapsed, showHidden)
+		// Expand if within auto-depth OR manually expanded, but never if collapsed.
+		if e.IsDir() && (depth < maxDepth || expanded[path]) && !collapsed[path] {
+			addTreeNodes(nodes, path, depth+1, maxDepth, collapsed, expanded, showHidden)
 		}
 	}
 }
@@ -100,12 +105,13 @@ func (t *treePanelModel) SetRoot(root string) {
 	t.cursor = 0
 	t.renderIdx = 0
 	t.collapsed = make(map[string]bool)
-	t.nodes = buildTreeNodes(root, t.maxDepth, t.collapsed, t.showHidden)
+	t.expanded = make(map[string]bool)
+	t.nodes = buildTreeNodes(root, t.maxDepth, t.collapsed, t.expanded, t.showHidden)
 }
 
 // rebuild regenerates the node list without changing root or depth settings.
 func (t *treePanelModel) rebuild() {
-	t.nodes = buildTreeNodes(t.root, t.maxDepth, t.collapsed, t.showHidden)
+	t.nodes = buildTreeNodes(t.root, t.maxDepth, t.collapsed, t.expanded, t.showHidden)
 	if t.cursor >= len(t.nodes) {
 		t.cursor = max(0, len(t.nodes)-1)
 	}
@@ -125,13 +131,18 @@ func (t *treePanelModel) ToggleNode() {
 	}
 	if t.collapsed[node.path] {
 		delete(t.collapsed, node.path)
+		if t.expanded == nil {
+			t.expanded = make(map[string]bool)
+		}
+		t.expanded[node.path] = true
 	} else {
 		t.collapsed[node.path] = true
+		delete(t.expanded, node.path)
 	}
 	t.rebuild()
 }
 
-// ExpandNode ensures the dir at cursor is expanded.
+// ExpandNode ensures the dir at cursor is expanded regardless of maxDepth.
 func (t *treePanelModel) ExpandNode() {
 	if len(t.nodes) == 0 || t.cursor >= len(t.nodes) {
 		return
@@ -141,6 +152,10 @@ func (t *treePanelModel) ExpandNode() {
 		return
 	}
 	delete(t.collapsed, node.path)
+	if t.expanded == nil {
+		t.expanded = make(map[string]bool)
+	}
+	t.expanded[node.path] = true
 	t.rebuild()
 }
 
@@ -152,6 +167,7 @@ func (t *treePanelModel) CollapseNode() {
 	node := t.nodes[t.cursor]
 	if node.isDir && !t.collapsed[node.path] {
 		t.collapsed[node.path] = true
+		delete(t.expanded, node.path)
 		t.rebuild()
 		return
 	}
@@ -159,6 +175,7 @@ func (t *treePanelModel) CollapseNode() {
 	if node.depth > 0 {
 		parentPath := filepath.Dir(node.path)
 		t.collapsed[parentPath] = true
+		delete(t.expanded, parentPath)
 		// Find parent position in visible node list
 		for i, n := range t.nodes {
 			if n.path == parentPath {
@@ -170,7 +187,7 @@ func (t *treePanelModel) CollapseNode() {
 	}
 }
 
-// ChangeDepth adjusts maxDepth by delta and rebuilds with reset collapses.
+// ChangeDepth adjusts maxDepth by delta and resets to a clean auto-expanded state.
 func (t *treePanelModel) ChangeDepth(delta int) {
 	newDepth := t.maxDepth + delta
 	if newDepth < 0 {
@@ -178,7 +195,17 @@ func (t *treePanelModel) ChangeDepth(delta int) {
 	}
 	t.maxDepth = newDepth
 	t.collapsed = make(map[string]bool)
+	t.expanded = make(map[string]bool)
 	t.rebuild()
+}
+
+// RootUp moves the tree root one level up toward the filesystem root.
+func (t *treePanelModel) RootUp() {
+	parent := filepath.Dir(t.root)
+	if parent == t.root {
+		return // already at filesystem root
+	}
+	t.SetRoot(parent)
 }
 
 // moveUp moves cursor one step up without wrapping (no selection logic).

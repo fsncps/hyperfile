@@ -51,16 +51,19 @@ func (m *model) handleTreePanelKey(msg string, idx int) tea.Cmd {
 		}
 		return nil
 
+	case msg == "backspace":
+		m.treePanels[idx].RootUp()
+
 	case slices.Contains(common.Hotkeys.ParentDirectory, msg):
 		// Collapse tree node; also drive file panel navigation.
 		tree.CollapseNode()
 		m.parentDirectory()
 
-	case msg == "ctrl+=", msg == "ctrl++":
+	case msg == "alt+=", msg == "alt++":
 		tree.ChangeDepth(+1)
 		m.syncTreeHiddenState()
 
-	case msg == "ctrl+-":
+	case msg == "alt+-":
 		tree.ChangeDepth(-1)
 		m.syncTreeHiddenState()
 
