@@ -64,3 +64,17 @@ modal_confirm_bg = "#89dceb"
 # ========= Help Menu =========
 help_menu_hotkey = "#89dceb"
 help_menu_title = "#eba0ac"
+
+# ========== Icon Colors (optional) ==========
+#
+# Override the color of file-type icons shown in the tree panels.
+# Keys are icon type names (see src/config/icon/icon.go for the full list).
+# Common file type keys: go, rs, py, js, ts, html, css, json, yaml, toml,
+#   md, sh, img, audio, video, zip, pdf, db, git, docker, vim, lua, rb, java
+# Common folder keys:  folder, .git, .github, .npm, .vscode, config, node_modules
+# Missing keys keep the built-in defaults. Unknown keys are silently ignored.
+#
+# [icon_colors]
+# go     = "#00ADD8"
+# rs     = "#FF6600"
+# folder = "#89b4fa"
