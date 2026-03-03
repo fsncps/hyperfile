@@ -201,6 +201,22 @@ func (m *model) copyMultipleItem(cut bool) {
 	m.copyItems.items = panel.selected
 }
 
+// copySingleTreeItem copies the node at the active tree cursor to the clipboard.
+func (m *model) copySingleTreeItem(tree *treePanelModel, cut bool) {
+	m.copyItems.reset(cut)
+	node := tree.GetSelectedNode()
+	if node == nil {
+		return
+	}
+	m.copyItems.items = append(m.copyItems.items, node.path)
+}
+
+// copyTreeSelection copies all selected tree nodes to the clipboard.
+func (m *model) copyTreeSelection(tree *treePanelModel, cut bool) {
+	m.copyItems.reset(cut)
+	m.copyItems.items = tree.SelectedPaths()
+}
+
 func (m *model) getPasteItemCmd() tea.Cmd {
 	copyItems := m.copyItems.items
 	cut := m.copyItems.cut

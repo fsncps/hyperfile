@@ -162,17 +162,17 @@ func (m *model) handleTreePanelKey(msg string, idx int) tea.Cmd {
 		m.panelItemRename()
 
 	case slices.Contains(common.Hotkeys.CopyItems, msg):
-		if m.fileModel.filePanels[m.filePanelFocusIndex].panelMode == selectMode {
-			m.copyMultipleItem(false)
+		if tree.HasSelection() {
+			m.copyTreeSelection(tree, false)
 		} else {
-			m.copySingleItem(false)
+			m.copySingleTreeItem(tree, false)
 		}
 
 	case slices.Contains(common.Hotkeys.CutItems, msg):
-		if m.fileModel.filePanels[m.filePanelFocusIndex].panelMode == selectMode {
-			m.copyMultipleItem(true)
+		if tree.HasSelection() {
+			m.copyTreeSelection(tree, true)
 		} else {
-			m.copySingleItem(true)
+			m.copySingleTreeItem(tree, true)
 		}
 
 	case slices.Contains(common.Hotkeys.FilePanelSelectAllItem, msg):
