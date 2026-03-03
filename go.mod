@@ -28,6 +28,7 @@ require (
 require (
 	github.com/charmbracelet/x/term v0.2.1 // indirect
 	github.com/ebitengine/purego v0.8.3 // indirect
+	github.com/jezek/xgb v1.3.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
 	golang.org/x/term v0.18.0 // indirect
