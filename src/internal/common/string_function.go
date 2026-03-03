@@ -70,7 +70,7 @@ func PrettierName(name string, width int, isDir bool, isSelected bool, bgColor l
 	return StringColorRender(lipgloss.Color(style.Color), bgColor).
 		Background(bgColor).
 		Render(style.Icon+" ") +
-		FilePanelStyle.Render(TruncateText(name, width, "..."))
+		lipgloss.NewStyle().Foreground(FilePanelFGColor).Background(bgColor).Render(TruncateText(name, width, "..."))
 }
 
 func PrettierDirectoryPreviewName(name string, isDir bool, bgColor lipgloss.Color) string {

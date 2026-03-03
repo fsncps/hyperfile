@@ -223,7 +223,7 @@ func LoadThemeConfig() { //nolint: funlen // Variable initialization
 	HelpMenuTitleStyle = lipgloss.NewStyle().Foreground(helpMenuTitleColor).Background(ModalBGColor)
 
 	// Tree panel branch lines
-	TreeBranchStyle = lipgloss.NewStyle().Foreground(hintColor).Background(FilePanelBGColor)
+	TreeBranchStyle = lipgloss.NewStyle().Foreground(FilePanelBorderColor).Background(FilePanelBGColor)
 
 	// Sidebar section headers (fixed accent colours)
 	SideBarPlacesHeaderStyle = lipgloss.NewStyle().
