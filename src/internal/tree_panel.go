@@ -182,7 +182,7 @@ func (t *treePanelModel) ChangeDepth(delta int) {
 }
 
 // moveUp moves cursor one step up without wrapping (no selection logic).
-func (t *treePanelModel) moveUp(visibleH int) {
+func (t *treePanelModel) moveUp() {
 	if t.cursor > 0 {
 		t.cursor--
 		if t.cursor < t.renderIdx {
@@ -208,7 +208,7 @@ func (t *treePanelModel) ListUp(visibleHeight int) {
 	}
 	t.ClearSelection()
 	if t.cursor > 0 {
-		t.moveUp(visibleHeight)
+		t.moveUp()
 	} else {
 		t.cursor = len(t.nodes) - 1
 		maxRender := len(t.nodes) - visibleHeight
@@ -293,7 +293,7 @@ func (t *treePanelModel) ShiftListUp(visibleH int) {
 		return
 	}
 	t.setAnchorIfUnset()
-	t.moveUp(visibleH)
+	t.moveUp()
 	t.applyRangeSelection()
 }
 
