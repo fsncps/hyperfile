@@ -51,6 +51,7 @@ func initialConfig(firstFilePanelDirs []string) (toggleDotFile bool, //nolint: n
 	common.LoadThemeFile()
 
 	icon.InitIcon(common.Config.Nerdfont, common.Theme.DirectoryIconColor)
+	icon.ApplyIconTheme(common.Theme.IconColors)
 
 	common.LoadThemeConfig()
 	common.LoadPrerenderedVariables()
