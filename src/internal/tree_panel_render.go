@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -22,6 +23,9 @@ func (m *model) treePanelRender(idx int) string {
 
 	// Top bar: path left-aligned, depth right-aligned in the same header row.
 	depthStr := "d:" + strconv.Itoa(tree.maxDepth)
+	if tree.HasSelection() {
+		depthStr += fmt.Sprintf(" [%d]", len(tree.selected))
+	}
 	iconPart := common.FilePanelTopDirectoryIcon
 	iconW := ansi.StringWidth(iconPart)
 	depthW := len(depthStr) // ASCII-safe
@@ -83,11 +87,12 @@ func (m *model) treePanelRender(idx int) string {
 			nameWidth = 4
 		}
 
+		isSelected := tree.selected[node.path]
 		rendered := common.PrettierName(
 			node.name,
 			nameWidth,
 			node.isDir,
-			false,
+			isSelected,
 			common.FilePanelBGColor,
 		)
 
