@@ -217,6 +217,35 @@ func (m *model) copyTreeSelection(tree *treePanelModel, cut bool) {
 	m.copyItems.items = tree.SelectedPaths()
 }
 
+// treePasteCmd pastes clipboard items into the directory at the tree cursor:
+// if the cursor is on a directory, paste into it; otherwise paste into its parent.
+func (m *model) treePasteCmd(tree *treePanelModel) tea.Cmd {
+	copyItems := m.copyItems.items
+	cut := m.copyItems.cut
+	if len(copyItems) == 0 {
+		return nil
+	}
+	node := tree.GetSelectedNode()
+	var dest string
+	if node == nil {
+		dest = tree.root
+	} else if node.isDir {
+		dest = node.path
+	} else {
+		dest = filepath.Dir(node.path)
+	}
+	reqID := m.ioReqCnt
+	m.ioReqCnt++
+	slog.Debug("treePasteCmd", "id", reqID, "items", len(copyItems), "dest", dest)
+	return func() tea.Msg {
+		if err := validatePasteOperation(dest, copyItems, cut); err != nil {
+			return NewNotifyModalMsg(notify.New(true, "Invalid paste location", err.Error(), notify.NoAction), reqID)
+		}
+		state := executePasteOperation(&m.processBarModel, dest, copyItems, cut)
+		return NewPasteOperationMsg(state, reqID)
+	}
+}
+
 func (m *model) getPasteItemCmd() tea.Cmd {
 	copyItems := m.copyItems.items
 	cut := m.copyItems.cut
@@ -534,4 +563,52 @@ func (m *model) copyPWD() {
 	if err := clipboard.WriteAll(panel.location); err != nil {
 		slog.Error("Error while copy present working directory", "error", err)
 	}
+}
+
+// ---- Drag and drop ----
+
+// dragItems launches the configured dnd_tool with the selected or cursor file(s),
+// allowing them to be dragged into external X11/Wayland applications.
+// The TUI is not suspended; the tool runs alongside it.
+func (m *model) dragItems(tree *treePanelModel) tea.Cmd {
+	tool := common.Config.DNDTool
+	if tool == "" {
+		tool = "dragon"
+	}
+
+	var paths []string
+	if tree.HasSelection() {
+		paths = tree.SelectedPaths()
+	} else {
+		node := tree.GetSelectedNode()
+		if node == nil {
+			return nil
+		}
+		paths = []string{node.path}
+	}
+
+	var args []string
+	if tool == "dragon" {
+		args = append([]string{"--and-exit"}, paths...)
+	} else {
+		args = paths
+	}
+
+	if _, err := exec.LookPath(tool); err != nil {
+		reqID := m.ioReqCnt
+		m.ioReqCnt++
+		return func() tea.Msg {
+			return NewNotifyModalMsg(
+				notify.New(true, "DnD tool not found",
+					"Install '"+tool+"' or set dnd_tool in config.toml", notify.NoAction),
+				reqID,
+			)
+		}
+	}
+
+	cmd := exec.Command(tool, args...)
+	if err := cmd.Start(); err != nil {
+		slog.Error("dragItems: failed to start dnd tool", "tool", tool, "error", err)
+	}
+	return nil
 }

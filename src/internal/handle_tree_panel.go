@@ -138,7 +138,10 @@ func (m *model) handleTreePanelKey(msg string, idx int) tea.Cmd {
 
 	// ---- File operations (act on focused file panel) ----
 	case slices.Contains(common.Hotkeys.PasteItems, msg):
-		return m.getPasteItemCmd()
+		return m.treePasteCmd(tree)
+
+	case slices.Contains(common.Hotkeys.DragItems, msg):
+		return m.dragItems(tree)
 
 	case slices.Contains(common.Hotkeys.FilePanelItemCreate, msg):
 		m.panelCreateNewFile()
@@ -230,6 +233,13 @@ func (m *model) setTree2PanelActive() {
 }
 
 // syncTreeHiddenState pushes the current toggleDotFile value into both tree panels.
+// rebuildAllTrees refreshes both tree panels from disk, e.g. after file operations.
+func (m *model) rebuildAllTrees() {
+	for i := range m.treePanels {
+		m.treePanels[i].rebuild()
+	}
+}
+
 func (m *model) syncTreeHiddenState() {
 	m.treePanels[0].showHidden = m.toggleDotFile
 	m.treePanels[1].showHidden = m.toggleDotFile
