@@ -47,6 +47,8 @@ type state struct {
 // Drag performs an X11 XDND drag for the given file paths.
 // Must be called in a goroutine. Returns nil on successful drop or cancel.
 func Drag(paths []string) error {
+	slog.Debug("xdnd: Drag start", "paths", paths)
+
 	conn, err := xgb.NewConn()
 	if err != nil {
 		return fmt.Errorf("xdnd: connect: %w", err)
@@ -59,21 +61,38 @@ func Drag(paths []string) error {
 		screen:  setup.DefaultScreen(conn),
 		uriList: buildURIList(paths),
 	}
+	slog.Debug("xdnd: X11 connected", "root", s.screen.Root, "uri_list", string(s.uriList))
 
 	if err := s.internAtoms(); err != nil {
 		return err
 	}
+	slog.Debug("xdnd: atoms interned",
+		"aware", s.aware, "enter", s.enter, "position", s.position,
+		"status", s.status, "leave", s.leave, "drop", s.drop,
+		"finished", s.finished, "selection", s.selection,
+		"uriListT", s.uriListT)
+
 	if err := s.createWindow(); err != nil {
 		return err
 	}
+	slog.Debug("xdnd: source window created", "srcWin", s.srcWin)
 	defer xproto.DestroyWindow(conn, s.srcWin)
 
 	// Own XdndSelection so SelectionRequest events route to us.
 	xproto.SetSelectionOwner(conn, s.srcWin, s.selection, xproto.TimeCurrentTime)
+	// Verify ownership
+	owner, err := xproto.GetSelectionOwner(conn, s.selection).Reply()
+	if err != nil {
+		slog.Warn("xdnd: could not verify selection ownership", "err", err)
+	} else {
+		slog.Debug("xdnd: XdndSelection owner", "owner", owner.Owner, "srcWin", s.srcWin, "match", owner.Owner == s.srcWin)
+	}
 
 	// Non-fatal: drag works without cursor change if this fails.
 	if err := s.loadFleurCursor(); err != nil {
 		slog.Debug("xdnd: cursor load failed", "err", err)
+	} else {
+		slog.Debug("xdnd: fleur cursor loaded", "cursor", s.cursor)
 	}
 	if s.cursor != 0 {
 		defer xproto.FreeCursor(conn, s.cursor)
@@ -82,6 +101,7 @@ func Drag(paths []string) error {
 	if err := s.grabPointer(); err != nil {
 		return fmt.Errorf("xdnd: grab pointer: %w", err)
 	}
+	slog.Debug("xdnd: pointer grabbed — entering event loop")
 	defer xproto.UngrabPointer(conn, 0)
 
 	return s.loop()
@@ -199,29 +219,52 @@ func (s *state) grabPointer() error {
 // ---- Event loop ----
 
 func (s *state) loop() error {
+	motionCount := 0
 	for {
 		ev, err := s.conn.WaitForEvent()
 		if err != nil {
+			slog.Debug("xdnd: WaitForEvent error, ending drag", "err", err)
 			return nil // connection closed or error; treat as cancel
 		}
 		switch e := ev.(type) {
 		case xproto.MotionNotifyEvent:
+			motionCount++
+			if motionCount%20 == 1 { // log every 20th motion to avoid log spam
+				slog.Debug("xdnd: MotionNotify", "rootX", e.RootX, "rootY", e.RootY,
+					"target", s.target, "targetAccepts", s.targetAccepts, "count", motionCount)
+			}
 			s.onMotion(e.RootX, e.RootY)
 
 		case xproto.ButtonReleaseEvent:
+			slog.Debug("xdnd: ButtonRelease", "target", s.target, "targetAccepts", s.targetAccepts)
 			s.onRelease()
+			slog.Debug("xdnd: drag ended after release")
 			return nil
 
 		case xproto.SelectionRequestEvent:
+			slog.Debug("xdnd: SelectionRequest",
+				"requestor", e.Requestor, "selection", e.Selection,
+				"target_atom", e.Target, "property", e.Property)
 			s.onSelectionRequest(e)
 
 		case xproto.ClientMessageEvent:
+			slog.Debug("xdnd: ClientMessage", "type", e.Type,
+				"status_atom", s.status, "finished_atom", s.finished,
+				"data32[0]", e.Data.Data32[0], "data32[1]", e.Data.Data32[1])
 			switch e.Type {
 			case s.status:
-				s.targetAccepts = e.Data.Data32[1]&1 != 0
+				accepts := e.Data.Data32[1]&1 != 0
+				slog.Debug("xdnd: XdndStatus received", "from", e.Data.Data32[0], "accepts", accepts)
+				s.targetAccepts = accepts
 			case s.finished:
+				slog.Debug("xdnd: XdndFinished received")
 				return nil
+			default:
+				slog.Debug("xdnd: unhandled ClientMessage type", "type", e.Type)
 			}
+
+		default:
+			slog.Debug("xdnd: unhandled event", "type", fmt.Sprintf("%T", ev))
 		}
 	}
 }
@@ -229,6 +272,7 @@ func (s *state) loop() error {
 func (s *state) onMotion(rootX, rootY int16) {
 	newTarget := s.topLevelAt()
 	if newTarget != s.target {
+		slog.Debug("xdnd: target changed", "old", s.target, "new", newTarget, "pos", fmt.Sprintf("%d,%d", rootX, rootY))
 		if s.target != 0 {
 			s.sendLeave()
 		}
@@ -244,17 +288,23 @@ func (s *state) onMotion(rootX, rootY int16) {
 }
 
 func (s *state) onRelease() {
+	slog.Debug("xdnd: onRelease", "target", s.target, "targetAccepts", s.targetAccepts)
 	if s.target == 0 || !s.targetAccepts {
 		if s.target != 0 {
+			slog.Debug("xdnd: sending Leave (target did not accept)")
 			s.sendLeave()
+		} else {
+			slog.Debug("xdnd: released over no XDND-aware window")
 		}
 		return
 	}
+	slog.Debug("xdnd: sending Drop to target", "target", s.target)
 	s.sendDrop()
 	s.waitFinished()
 }
 
 func (s *state) waitFinished() {
+	slog.Debug("xdnd: waiting for XdndFinished (2s timeout)")
 	deadline := time.Now().Add(2 * time.Second)
 	for time.Now().Before(deadline) {
 		ev, _ := s.conn.PollForEvent()
@@ -264,13 +314,17 @@ func (s *state) waitFinished() {
 		}
 		switch e := ev.(type) {
 		case xproto.ClientMessageEvent:
+			slog.Debug("xdnd: waitFinished ClientMessage", "type", e.Type, "finished_atom", s.finished)
 			if e.Type == s.finished {
+				slog.Debug("xdnd: got XdndFinished")
 				return
 			}
 		case xproto.SelectionRequestEvent:
+			slog.Debug("xdnd: SelectionRequest during waitFinished", "requestor", e.Requestor)
 			s.onSelectionRequest(e)
 		}
 	}
+	slog.Debug("xdnd: waitFinished timed out")
 }
 
 // ---- Window detection ----
@@ -291,7 +345,11 @@ func (s *state) topLevelAt() xproto.Window {
 	if topLevel == s.srcWin {
 		return 0
 	}
-	if s.xdndAwareUnderCursor(topLevel, 8) {
+	found := s.xdndAwareUnderCursor(topLevel, 8)
+	if !found {
+		slog.Debug("xdnd: topLevelAt: no XdndAware in window chain", "topLevel", topLevel)
+	}
+	if found {
 		return topLevel
 	}
 	return 0
@@ -300,16 +358,19 @@ func (s *state) topLevelAt() xproto.Window {
 // xdndAwareUnderCursor walks down the window tree following the pointer,
 // returning true if any window in the chain has XdndAware set.
 func (s *state) xdndAwareUnderCursor(win xproto.Window, maxDepth int) bool {
-	for range maxDepth {
+	for depth := range maxDepth {
 		prop, err := xproto.GetProperty(s.conn, false, win,
 			s.aware, xproto.AtomAtom, 0, 1).Reply()
 		if err == nil && prop.ValueLen > 0 {
+			slog.Debug("xdnd: XdndAware found", "win", win, "depth", depth)
 			return true
 		}
 		qp, err := xproto.QueryPointer(s.conn, win).Reply()
 		if err != nil || qp.Child == xproto.WindowNone {
+			slog.Debug("xdnd: xdndAwareUnderCursor: no more children", "win", win, "depth", depth)
 			return false
 		}
+		slog.Debug("xdnd: xdndAwareUnderCursor: descending", "from", win, "to", qp.Child, "depth", depth)
 		win = qp.Child
 	}
 	return false
@@ -318,6 +379,7 @@ func (s *state) xdndAwareUnderCursor(win xproto.Window, maxDepth int) bool {
 // ---- XDND messages ----
 
 func (s *state) sendEnter() {
+	slog.Debug("xdnd: sending XdndEnter", "target", s.target, "srcWin", s.srcWin, "uriListT", s.uriListT)
 	s.clientMsg(s.target, s.enter, [5]uint32{
 		uint32(s.srcWin),
 		uint32(xdndVersion) << 24, // flags: type count ≤ 3
@@ -337,10 +399,12 @@ func (s *state) sendPosition(rootX, rootY int16) {
 }
 
 func (s *state) sendLeave() {
+	slog.Debug("xdnd: sending XdndLeave", "target", s.target)
 	s.clientMsg(s.target, s.leave, [5]uint32{uint32(s.srcWin), 0, 0, 0, 0})
 }
 
 func (s *state) sendDrop() {
+	slog.Debug("xdnd: sending XdndDrop", "target", s.target)
 	s.clientMsg(s.target, s.drop, [5]uint32{uint32(s.srcWin), 0, 0, 0, 0})
 }
 
@@ -357,6 +421,9 @@ func (s *state) clientMsg(win xproto.Window, typ xproto.Atom, data [5]uint32) {
 // ---- Selection (provides file data to target) ----
 
 func (s *state) onSelectionRequest(e xproto.SelectionRequestEvent) {
+	slog.Debug("xdnd: serving SelectionRequest",
+		"requestor", e.Requestor, "property", e.Property,
+		"uri_list_len", len(s.uriList), "uri_list", string(s.uriList))
 	xproto.ChangeProperty(s.conn, xproto.PropModeReplace, e.Requestor,
 		e.Property, s.uriListT, 8, uint32(len(s.uriList)), s.uriList)
 
@@ -369,6 +436,7 @@ func (s *state) onSelectionRequest(e xproto.SelectionRequestEvent) {
 	}
 	xproto.SendEvent(s.conn, false, e.Requestor,
 		xproto.EventMaskNoEvent, string(notify.Bytes()))
+	slog.Debug("xdnd: SelectionNotify sent", "requestor", e.Requestor)
 }
 
 // ---- Helpers ----

@@ -25,27 +25,28 @@ import (
 // This is the only usecase of named returns, distinguish between multiple return values
 func initialConfig(firstFilePanelDirs []string) (toggleDotFile bool, //nolint: nonamedreturns // See above
 	toggleFooter bool) {
+	// Load config first so we can read log_file / log_level from it.
+	common.LoadConfigFile()
+
+	logPath := variable.LogFile
+	if common.Config.LogFile != "" {
+		logPath = common.Config.LogFile
+	}
+
 	// Open log stream
-	file, err := os.OpenFile(variable.LogFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	file, err := os.OpenFile(logPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 
 	// TODO : This could be improved if we want to make superfile more resilient to errors
 	// For example if the log file directories have access issues.
 	// we could pass a dummy object to log.SetOutput() and the app would still function.
 	if err != nil {
-		utils.PrintfAndExit("Error while opening superfile.log file : %v", err)
-	}
-	common.LoadConfigFile()
-
-	logLevel := slog.LevelInfo
-	if common.Config.Debug {
-		logLevel = slog.LevelDebug
+		utils.PrintfAndExit("Error while opening log file %s: %v", logPath, err)
 	}
 
 	slog.SetDefault(slog.New(slog.NewTextHandler(
-		file, &slog.HandlerOptions{Level: logLevel})))
+		file, &slog.HandlerOptions{Level: resolveLogLevel(common.Config.LogLevel, common.Config.Debug)})))
 
 	printRuntimeInfo()
-
 	common.LoadHotkeysFile()
 
 	common.LoadThemeFile()
@@ -114,6 +115,26 @@ func updateFirstFilePanelDirs(firstFilePanelDirs []string, cwd string) {
 			slog.Error("cannot get stats for firstFilePanelDir", "error", err)
 			firstFilePanelDirs[i] = variable.HomeDir
 		}
+	}
+}
+
+// resolveLogLevel converts a log_level string to a slog.Level.
+// Falls back to debug when the debug flag is true, otherwise info.
+func resolveLogLevel(s string, debug bool) slog.Level {
+	switch strings.ToLower(s) {
+	case "debug":
+		return slog.LevelDebug
+	case "warn":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	case "info":
+		return slog.LevelInfo
+	default:
+		if debug {
+			return slog.LevelDebug
+		}
+		return slog.LevelInfo
 	}
 }
 

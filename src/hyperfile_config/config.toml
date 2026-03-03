@@ -93,3 +93,11 @@ zoxide_support = false
 #
 # Tool used for drag-and-drop to external apps. X11: "dragon", Wayland: "ripdrag".
 dnd_tool = "dragon"
+#
+# ==========LOGGING==========
+#
+# Path to log file. Leave empty for default (~/.local/state/hyperfile/hyperfile.log).
+log_file = ""
+#
+# Log verbosity: "debug", "info", "warn", "error". Overrides debug flag.
+log_level = "info"

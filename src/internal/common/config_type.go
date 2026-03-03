@@ -107,6 +107,10 @@ type ConfigType struct {
 	EnableMD5Checksum bool `toml:"enable_md5_checksum" comment:"Enable MD5 checksum generation for files"`
 	ZoxideSupport     bool   `toml:"zoxide_support" comment:"Zoxide support for the fast navigation"`
 	DNDTool           string `toml:"dnd_tool" comment:"Tool used for drag-and-drop to external apps. X11: \"dragon\", Wayland: \"ripdrag\"."`
+
+	// ---- Logging ----
+	LogFile  string `toml:"log_file"  comment:"\n==========LOGGING==========\n\nPath to log file. Leave empty for default (~/.local/state/hyperfile/hyperfile.log)."`
+	LogLevel string `toml:"log_level" comment:"Log verbosity: \"debug\", \"info\", \"warn\", \"error\". Overrides debug flag."`
 }
 
 // GetIgnoreMissingFields reports whether warnings about missing TOML fields should be ignored.
