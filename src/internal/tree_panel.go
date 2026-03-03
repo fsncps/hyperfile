@@ -31,6 +31,8 @@ type treePanelModel struct {
 	renderIdx  int
 	maxDepth   int             // auto-expand depth; 0 means root children only
 	collapsed  map[string]bool // paths manually collapsed by user
+	selected   map[string]bool // paths currently selected; nil = no selection
+	anchor     int             // cursor idx when shift-select began; -1 = unset
 	showHidden bool            // mirrors model.toggleDotFile
 	focusType  filePanelFocusType
 	open       bool
@@ -42,6 +44,7 @@ func defaultTreePanel(root string) treePanelModel {
 		root:      root,
 		maxDepth:  2,
 		collapsed: make(map[string]bool),
+		anchor:    -1,
 		open:      true,
 		focusType: noneFocus,
 	}
@@ -92,6 +95,7 @@ func (t *treePanelModel) SetRoot(root string) {
 	if root == t.root {
 		return
 	}
+	t.ClearSelection()
 	t.root = root
 	t.cursor = 0
 	t.renderIdx = 0
@@ -177,16 +181,34 @@ func (t *treePanelModel) ChangeDepth(delta int) {
 	t.rebuild()
 }
 
-// ListUp moves the cursor up, wrapping to bottom.
+// moveUp moves cursor one step up without wrapping (no selection logic).
+func (t *treePanelModel) moveUp(visibleH int) {
+	if t.cursor > 0 {
+		t.cursor--
+		if t.cursor < t.renderIdx {
+			t.renderIdx = t.cursor
+		}
+	}
+}
+
+// moveDown moves cursor one step down without wrapping (no selection logic).
+func (t *treePanelModel) moveDown(visibleH int) {
+	if t.cursor < len(t.nodes)-1 {
+		t.cursor++
+		if t.cursor >= t.renderIdx+visibleH {
+			t.renderIdx++
+		}
+	}
+}
+
+// ListUp moves the cursor up, wrapping to bottom, and clears any selection.
 func (t *treePanelModel) ListUp(visibleHeight int) {
 	if len(t.nodes) == 0 {
 		return
 	}
+	t.ClearSelection()
 	if t.cursor > 0 {
-		t.cursor--
-		if t.cursor < t.renderIdx {
-			t.renderIdx--
-		}
+		t.moveUp(visibleHeight)
 	} else {
 		t.cursor = len(t.nodes) - 1
 		maxRender := len(t.nodes) - visibleHeight
@@ -197,20 +219,92 @@ func (t *treePanelModel) ListUp(visibleHeight int) {
 	}
 }
 
-// ListDown moves the cursor down, wrapping to top.
+// ListDown moves the cursor down, wrapping to top, and clears any selection.
 func (t *treePanelModel) ListDown(visibleHeight int) {
 	if len(t.nodes) == 0 {
 		return
 	}
+	t.ClearSelection()
 	if t.cursor < len(t.nodes)-1 {
-		t.cursor++
-		if t.cursor >= t.renderIdx+visibleHeight {
-			t.renderIdx++
-		}
+		t.moveDown(visibleHeight)
 	} else {
 		t.cursor = 0
 		t.renderIdx = 0
 	}
+}
+
+// ---- Selection methods
+
+// ClearSelection removes all selected paths and resets the anchor.
+func (t *treePanelModel) ClearSelection() {
+	t.selected = nil
+	t.anchor = -1
+}
+
+// HasSelection reports whether any paths are selected.
+func (t *treePanelModel) HasSelection() bool {
+	return len(t.selected) > 0
+}
+
+// SelectedPaths returns a slice of all currently selected paths (unordered).
+func (t *treePanelModel) SelectedPaths() []string {
+	paths := make([]string, 0, len(t.selected))
+	for p := range t.selected {
+		paths = append(paths, p)
+	}
+	return paths
+}
+
+// ToggleSelected toggles the selection state of a single path.
+func (t *treePanelModel) ToggleSelected(path string) {
+	if t.selected == nil {
+		t.selected = make(map[string]bool)
+	}
+	if t.selected[path] {
+		delete(t.selected, path)
+	} else {
+		t.selected[path] = true
+	}
+}
+
+func (t *treePanelModel) setAnchorIfUnset() {
+	if t.anchor == -1 {
+		t.anchor = t.cursor
+	}
+}
+
+func (t *treePanelModel) applyRangeSelection() {
+	if t.anchor < 0 || t.anchor >= len(t.nodes) {
+		return
+	}
+	lo, hi := t.anchor, t.cursor
+	if lo > hi {
+		lo, hi = hi, lo
+	}
+	t.selected = make(map[string]bool, hi-lo+1)
+	for i := lo; i <= hi && i < len(t.nodes); i++ {
+		t.selected[t.nodes[i].path] = true
+	}
+}
+
+// ShiftListUp extends or shrinks the range selection one step up.
+func (t *treePanelModel) ShiftListUp(visibleH int) {
+	if len(t.nodes) == 0 {
+		return
+	}
+	t.setAnchorIfUnset()
+	t.moveUp(visibleH)
+	t.applyRangeSelection()
+}
+
+// ShiftListDown extends or shrinks the range selection one step down.
+func (t *treePanelModel) ShiftListDown(visibleH int) {
+	if len(t.nodes) == 0 {
+		return
+	}
+	t.setAnchorIfUnset()
+	t.moveDown(visibleH)
+	t.applyRangeSelection()
 }
 
 // GetSelectedNode returns a copy of the node at cursor, or nil if empty.
