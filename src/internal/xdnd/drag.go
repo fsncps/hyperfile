@@ -329,7 +329,7 @@ func (s *state) clientMsg(win xproto.Window, typ xproto.Atom, data [5]uint32) {
 		Format: 32,
 		Window: win,
 		Type:   typ,
-		Data:   xproto.ClientMessageDataUnionData32New(data),
+		Data:   xproto.ClientMessageDataUnionData32New(data[:]),
 	}
 	xproto.SendEvent(s.conn, false, win, xproto.EventMaskNoEvent, string(ev.Bytes()))
 }
