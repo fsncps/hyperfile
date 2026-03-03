@@ -8,16 +8,11 @@ import (
 
 func TestApplyIconTheme_overridesFileIconColor(t *testing.T) {
 	icon.InitIcon(true, "")
-	original := icon.Icons["go"].Color
 
 	icon.ApplyIconTheme(map[string]string{"go": "#deadbe"})
 
 	if icon.Icons["go"].Color != "#deadbe" {
 		t.Errorf("expected #deadbe, got %s", icon.Icons["go"].Color)
-	}
-	// glyph must be unchanged
-	if icon.Icons["go"].Icon != original || icon.Icons["go"].Color == original {
-		// glyph preserved; color changed — OK, but let's be explicit
 	}
 }
 
