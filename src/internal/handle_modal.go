@@ -81,6 +81,7 @@ func (m *model) confirmRename() {
 	m.fileModel.renaming = false
 	panel.rename.Blur()
 	panel.renaming = false
+	m.rebuildAllTrees()
 }
 
 func (m *model) openSortOptionsMenu() {

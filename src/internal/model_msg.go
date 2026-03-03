@@ -37,8 +37,11 @@ func NewPasteOperationMsg(state processbar.ProcessState, reqID int) PasteOperati
 }
 
 func (msg PasteOperationMsg) ApplyToModel(m *model) tea.Cmd {
-	if (msg.state == processbar.Failed || msg.state == processbar.Successful) && m.copyItems.cut {
-		m.copyItems.reset(false)
+	if msg.state == processbar.Failed || msg.state == processbar.Successful {
+		if m.copyItems.cut {
+			m.copyItems.reset(false)
+		}
+		m.rebuildAllTrees()
 	}
 	return nil
 }
@@ -58,8 +61,8 @@ func NewDeleteOperationMsg(state processbar.ProcessState, reqID int) DeleteOpera
 }
 
 func (msg DeleteOperationMsg) ApplyToModel(m *model) tea.Cmd {
-	// Remove selection
 	m.getFocusedFilePanel().resetSelected()
+	m.rebuildAllTrees()
 	return nil
 }
 
@@ -90,7 +93,8 @@ func NewCompressOperationMsg(state processbar.ProcessState, reqID int) CompressO
 	}
 }
 
-func (msg CompressOperationMsg) ApplyToModel(_ *model) tea.Cmd {
+func (msg CompressOperationMsg) ApplyToModel(m *model) tea.Cmd {
+	m.rebuildAllTrees()
 	return nil
 }
 
@@ -108,7 +112,8 @@ func NewExtractOperationMsg(state processbar.ProcessState, reqID int) ExtractOpe
 	}
 }
 
-func (msg ExtractOperationMsg) ApplyToModel(_ *model) tea.Cmd {
+func (msg ExtractOperationMsg) ApplyToModel(m *model) tea.Cmd {
+	m.rebuildAllTrees()
 	return nil
 }
 
