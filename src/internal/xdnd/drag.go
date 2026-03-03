@@ -276,23 +276,43 @@ func (s *state) waitFinished() {
 // ---- Window detection ----
 
 // topLevelAt returns the top-level (direct child of root) X11 window
-// currently under the pointer, or 0 if none or no XdndAware property.
+// currently under the pointer, or 0 if it (or none of its descendants
+// under the cursor) has XdndAware set.
+//
+// Reparenting window managers wrap each app in a frame window that lacks
+// XdndAware; the property lives on the inner application window.
+// xdndAwareUnderCursor walks down the pointer-child chain to find it.
 func (s *state) topLevelAt() xproto.Window {
 	r, err := xproto.QueryPointer(s.conn, s.screen.Root).Reply()
 	if err != nil || r.Child == xproto.WindowNone {
 		return 0
 	}
-	win := r.Child
-	if win == s.srcWin {
+	topLevel := r.Child
+	if topLevel == s.srcWin {
 		return 0
 	}
-	// Check XdndAware
-	prop, err := xproto.GetProperty(s.conn, false, win,
-		s.aware, xproto.AtomAtom, 0, 1).Reply()
-	if err != nil || prop.ValueLen == 0 {
-		return 0
+	if s.xdndAwareUnderCursor(topLevel, 8) {
+		return topLevel
 	}
-	return win
+	return 0
+}
+
+// xdndAwareUnderCursor walks down the window tree following the pointer,
+// returning true if any window in the chain has XdndAware set.
+func (s *state) xdndAwareUnderCursor(win xproto.Window, maxDepth int) bool {
+	for range maxDepth {
+		prop, err := xproto.GetProperty(s.conn, false, win,
+			s.aware, xproto.AtomAtom, 0, 1).Reply()
+		if err == nil && prop.ValueLen > 0 {
+			return true
+		}
+		qp, err := xproto.QueryPointer(s.conn, win).Reply()
+		if err != nil || qp.Child == xproto.WindowNone {
+			return false
+		}
+		win = qp.Child
+	}
+	return false
 }
 
 // ---- XDND messages ----
