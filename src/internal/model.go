@@ -127,44 +127,23 @@ func (m *model) handleMouseMsg(msg tea.MouseMsg) tea.Cmd {
 	return nil
 }
 
-// handleMouseLeftPress fires drag for the tree row that was clicked.
-// Row calculation: 3 overhead rows (top border + header + divider), then items
-// offset by tree.renderIdx. If the panel has a shift-selection, drags the
-// selection regardless of which row was clicked.
+// handleMouseLeftPress switches focus to whichever tree panel was clicked.
 func (m *model) handleMouseLeftPress(x, y int) tea.Cmd {
-	const headerRows = 3
 	for idx := range 2 {
 		if !m.treePanels[idx].open {
 			continue
 		}
 		start := m.treePanelStartX(idx)
 		end := start + m.treePanels[idx].width + 2
-		// +1 skips the left border; anything inside the content area counts.
 		if x < start+1 || x >= end {
 			continue
 		}
-
-		tree := &m.treePanels[idx]
-		if len(tree.nodes) == 0 {
-			return nil
-		}
-
-		clickedIdx := tree.renderIdx + (y - headerRows)
-		if clickedIdx < 0 || clickedIdx >= len(tree.nodes) {
-			return nil
-		}
-
 		if idx == 0 {
 			m.setTree1PanelActive()
 		} else {
 			m.setTree2PanelActive()
 		}
-
-		// Use selection if one exists, otherwise drag the clicked row.
-		if tree.HasSelection() {
-			return m.dragPaths(tree.SelectedPaths())
-		}
-		return m.dragPaths([]string{tree.nodes[clickedIdx].path})
+		return nil
 	}
 	return nil
 }
