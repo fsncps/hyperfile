@@ -12,7 +12,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -491,37 +490,64 @@ func (m *model) renderUnsupportedFileMode(r *rendering.Renderer) string {
 	return r.Render()
 }
 
-// Helper function to handle directory preview
+// renderDirectoryPreview shows folder metadata instead of a raw file listing.
 func (m *model) renderDirectoryPreview(r *rendering.Renderer, itemPath string, previewHeight int) string {
-	files, err := os.ReadDir(itemPath)
+	info, err := os.Stat(itemPath)
 	if err != nil {
 		slog.Error("Error render directory preview", "error", err)
 		r.AddLines(common.FilePreviewDirectoryUnreadableText)
 		return r.Render()
 	}
 
-	if len(files) == 0 {
-		r.AddLines(common.FilePreviewEmptyText)
+	entries, err := os.ReadDir(itemPath)
+	if err != nil {
+		r.AddLines(common.FilePreviewDirectoryUnreadableText)
 		return r.Render()
 	}
 
-	sort.Slice(files, func(i, j int) bool {
-		if files[i].IsDir() && !files[j].IsDir() {
-			return true
+	// Count and size pass over direct children only (fast, no deep walk).
+	var fileCount, dirCount, hiddenCount int
+	var totalSize int64
+	for _, e := range entries {
+		if len(e.Name()) > 0 && e.Name()[0] == '.' {
+			hiddenCount++
+			continue
 		}
-		if !files[i].IsDir() && files[j].IsDir() {
-			return false
+		if e.IsDir() {
+			dirCount++
+		} else {
+			fileCount++
+			if fi, err2 := e.Info(); err2 == nil {
+				totalSize += fi.Size()
+			}
 		}
-		return files[i].Name() < files[j].Name()
-	})
-
-	for i := 0; i < previewHeight && i < len(files); i++ {
-		file := files[i]
-		style := common.GetElementIcon(file.Name(), file.IsDir(), common.Config.Nerdfont)
-		res := lipgloss.NewStyle().Foreground(lipgloss.Color(style.Color)).Background(common.FilePanelBGColor).
-			Render(style.Icon+" ") + common.FilePanelStyle.Render(file.Name())
-		r.AddLines(res)
 	}
+
+	label := lipgloss.NewStyle().Foreground(common.FilePanelBorderActiveColor).Background(common.FilePanelBGColor)
+	value := common.FilePanelStyle
+
+	row := func(lbl, val string) string {
+		return label.Render(fmt.Sprintf("  %-12s", lbl)) + value.Render(val)
+	}
+
+	itemStr := fmt.Sprintf("%d files, %d dirs", fileCount, dirCount)
+	if hiddenCount > 0 {
+		itemStr += fmt.Sprintf(" (+%d hidden)", hiddenCount)
+	}
+
+	sizeStr := common.FormatFileSize(totalSize)
+	if dirCount > 0 {
+		sizeStr += "  (files only)"
+	}
+
+	modStr := info.ModTime().Format("2006-01-02  15:04")
+	modeStr := info.Mode().String()
+
+	r.AddLines(row("Items", itemStr))
+	r.AddLines(row("Size", sizeStr))
+	r.AddLines(row("Modified", modStr))
+	r.AddLines(row("Mode", modeStr))
+
 	return r.Render()
 }
 
