@@ -44,6 +44,39 @@ func (m *model) treePanelRender(idx int) string {
 	r.AddLines(headerLine)
 	r.AddSection()
 
+	// ── Detail view mode ───────────────────────────────────────────────────
+	if tree.mode == treePanelModeDetail {
+		if len(tree.detailEntries) == 0 {
+			r.AddLines(common.FilePanelNoneText)
+			return r.Render()
+		}
+		visibleH := m.mainPanelHeight - 2
+		end := min(tree.renderIdx+visibleH, len(tree.detailEntries))
+		// Fixed column widths: perms(10) + space + size(8) + space + date(12) + space = 32
+		const fixedCols = 32
+		cursorOverhead := 2 // cursorChar + space
+		nameWidth := r.ContentWidth() - cursorOverhead - fixedCols
+		if nameWidth < 4 {
+			nameWidth = 4
+		}
+		for i := tree.renderIdx; i < end; i++ {
+			e := tree.detailEntries[i]
+			cursorChar := " "
+			if i == tree.cursor {
+				cursorChar = icon.Cursor
+			}
+			name := common.PrettierName(e.name, nameWidth, e.isDir, false, common.FilePanelBGColor)
+			perms := e.mode.String() // "-rwxr-xr-x" = 10 chars
+			size := formatDetailSize(e.size)
+			date := e.modTime.Format("Jan 02 15:04")
+			line := common.FilePanelCursorStyle.Render(cursorChar+" ") +
+				name + " " + perms + " " + size + " " + date
+			r.AddLines(line)
+		}
+		return r.Render()
+	}
+	// ── Tree mode (existing render below) ──────────────────────────────────
+
 	if len(tree.nodes) == 0 {
 		r.AddLines(common.FilePanelNoneText)
 		return r.Render()
@@ -78,14 +111,14 @@ func (m *model) treePanelRender(idx int) string {
 		if node.isDir {
 			hasKids := tree.HasChildren(node.path)
 			if hasKids && tree.IsExpanded(node.path) && node.depth < tree.maxDepth {
-				expandIndicator = ""
+				expandIndicator = " "
 			} else if hasKids {
-				expandIndicator = ""
+				expandIndicator = " "
 			} else {
-				expandIndicator = " "
+				expandIndicator = ""
 			}
 		} else {
-			expandIndicator = " "
+			expandIndicator = ""
 		}
 
 		// Width available for PrettierName (icon + name), accounting for branch prefix.
@@ -127,6 +160,27 @@ func (m *model) treePanelRender(idx int) string {
 	return r.Render()
 }
 
+// formatDetailSize returns a human-readable size string right-aligned to 8 chars.
+func formatDetailSize(bytes int64) string {
+	const (
+		kb = 1024
+		mb = kb * 1024
+		gb = mb * 1024
+	)
+	var s string
+	switch {
+	case bytes >= gb:
+		s = fmt.Sprintf("%.1fG", float64(bytes)/gb)
+	case bytes >= mb:
+		s = fmt.Sprintf("%.1fM", float64(bytes)/mb)
+	case bytes >= kb:
+		s = fmt.Sprintf("%.1fK", float64(bytes)/kb)
+	default:
+		s = fmt.Sprintf("%dB", bytes)
+	}
+	return fmt.Sprintf("%8s", s)
+}
+
 // treeNodeBranchPrefix returns the branch-drawing prefix for node at position idx
 // in the flat nodes slice.  For each ancestor depth level it emits "│  " (the
 // ancestor has more siblings below) or "   " (the ancestor was the last sibling).
@@ -149,14 +203,14 @@ func treeNodeBranchPrefix(nodes []treeNode, idx int) string {
 		if ancestorIsLast {
 			b.WriteString("  ")
 		} else {
-			b.WriteString("│ ")
+			b.WriteString(" │ ")
 		}
 	}
 	// Own branch connector
 	if node.isLast {
-		b.WriteString("╰─")
+		b.WriteString(" ╰─")
 	} else {
-		b.WriteString("├─")
+		b.WriteString(" ├─")
 	}
 	return b.String()
 }
