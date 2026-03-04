@@ -491,6 +491,9 @@ func (m *model) updateFilePanelsState(msg tea.Msg) tea.Cmd {
 		focusPanel.rename, cmd = focusPanel.rename.Update(msg)
 	case focusPanel.searchBar.Focused():
 		focusPanel.searchBar, cmd = focusPanel.searchBar.Update(msg)
+	case m.treePanels[int(m.activeFileArea)].rgSearchBar.Focused():
+		idx := int(m.activeFileArea)
+		m.treePanels[idx].rgSearchBar, cmd = m.treePanels[idx].rgSearchBar.Update(msg)
 	case m.typingModal.open:
 		m.typingModal.textInput, cmd = m.typingModal.textInput.Update(msg)
 	case m.promptModal.IsOpen():
