@@ -56,10 +56,9 @@ func (m *model) treePanelRender(idx int) string {
 		}
 		visibleH := m.mainPanelHeight - 2
 		end := min(tree.renderIdx+visibleH, len(tree.detailEntries))
-		// Fixed column widths: perms(10) + space + size(8) + space + date(12) + space = 32
-		const fixedCols = 32
-		cursorOverhead := 2 // cursorChar + space
-		nameWidth := r.ContentWidth() - cursorOverhead - fixedCols
+		// cursor(2) + icon+sp(2) + sep(1) + perms(10) + sep(1) + size(8) + sep(1) + date(12) = 37
+		const detailOverhead = 37
+		nameWidth := r.ContentWidth() - detailOverhead
 		if nameWidth < 4 {
 			nameWidth = 4
 		}
@@ -69,12 +68,25 @@ func (m *model) treePanelRender(idx int) string {
 			if i == tree.cursor {
 				cursorChar = icon.Cursor
 			}
-			name := common.PrettierName(e.name, nameWidth, e.isDir, false, common.FilePanelBGColor)
-			perms := e.mode.String() // "-rwxr-xr-x" = 10 chars
-			size := formatDetailSize(e.size)
-			date := e.modTime.Format("Jan 02 15:04")
+			// Icon cell: always 2 display chars (glyph + space)
+			entryStyle := common.GetElementIcon(e.name, e.isDir, common.Config.Nerdfont)
+			iconCell := common.StringColorRender(lipgloss.Color(entryStyle.Color), common.FilePanelBGColor).
+				Background(common.FilePanelBGColor).
+				Render(entryStyle.Icon + " ")
+			// Name cell: exactly nameWidth display chars via lipgloss Width()
+			nameCell := lipgloss.NewStyle().
+				Foreground(common.FilePanelFGColor).
+				Background(common.FilePanelBGColor).
+				Width(nameWidth).
+				Render(common.TruncateText(e.name, nameWidth, "..."))
+			perms := e.mode.String()                 // always 10 chars
+			size := formatDetailSize(e.size)          // always 8 chars
+			date := e.modTime.Format("Jan 02 15:04") // always 12 chars
 			line := common.FilePanelCursorStyle.Render(cursorChar+" ") +
-				name + " " + perms + " " + size + " " + date
+				iconCell + nameCell + " " +
+				perms + " " +
+				size + " " +
+				date
 			r.AddLines(line)
 		}
 		return r.Render()
@@ -134,9 +146,9 @@ func (m *model) treePanelRender(idx int) string {
 		}
 
 		isSelected := tree.selected[node.path]
-		dragChar := " "
+		dragChar := ""
 		if i == tree.cursor || isSelected {
-			dragChar = "⠿"
+			dragChar = ""
 		}
 		bgColor := common.FilePanelBGColor
 		if clipSet[node.path] {
