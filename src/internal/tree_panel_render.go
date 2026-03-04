@@ -48,6 +48,13 @@ func (m *model) treePanelRender(idx int) string {
 	r.AddLines(headerLine)
 	r.AddSection()
 
+	// Rg content search bar: visible when focused or when a filter is active.
+	if tree.rgSearchBar.Focused() || tree.rgSearchBar.Value() != "" {
+		tree.rgSearchBar.Width = r.ContentWidth() - 6
+		r.AddLines(" " + tree.rgSearchBar.View())
+		r.AddSection()
+	}
+
 	// ── Detail view mode ───────────────────────────────────────────────────
 	if tree.mode == treePanelModeDetail {
 		if len(tree.detailEntries) == 0 {
