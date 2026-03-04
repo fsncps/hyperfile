@@ -23,6 +23,8 @@ func TestCtrlGCloseRgSearchBar(t *testing.T) {
 	assert.False(t, m.treePanels[0].rgSearchBar.Focused())
 	assert.Equal(t, "", m.treePanels[0].rgSearchBar.Value())
 	assert.Nil(t, m.treePanels[0].rgMatches)
+	assert.Equal(t, 0, m.treePanels[0].cursor)
+	assert.Equal(t, 0, m.treePanels[0].renderIdx)
 }
 
 func TestEscClosesRgSearchBar(t *testing.T) {
