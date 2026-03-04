@@ -121,6 +121,8 @@ func (m *model) handleMouseMsg(msg tea.MouseMsg) tea.Cmd {
 		wheelMainAction(msgStr, m)
 	case msgStr == "left press":
 		return m.handleMouseLeftPress(msg.X, msg.Y)
+	case msgStr == "right press":
+		return m.handleMouseRightPress(msg.X, msg.Y)
 	default:
 		slog.Debug("Mouse event of type that is not handled", "msg", msgStr)
 	}
@@ -151,6 +153,36 @@ func (m *model) handleMouseLeftPress(x, y int) tea.Cmd {
 			m.setTree2PanelActive()
 		}
 		return m.dragItems(&m.treePanels[idx])
+	}
+	return nil
+}
+
+// handleMouseRightPress drags the row under the cursor, ignoring selection.
+func (m *model) handleMouseRightPress(x, y int) tea.Cmd {
+	const headerRows = 3
+	for idx := range 2 {
+		if !m.treePanels[idx].open {
+			continue
+		}
+		start := m.treePanelStartX(idx)
+		end := start + m.treePanels[idx].width + 2
+		if x < start+1 || x >= end {
+			continue
+		}
+		tree := &m.treePanels[idx]
+		if len(tree.nodes) == 0 {
+			return nil
+		}
+		clickedIdx := tree.renderIdx + (y - headerRows)
+		if clickedIdx < 0 || clickedIdx >= len(tree.nodes) {
+			return nil
+		}
+		if idx == 0 {
+			m.setTree1PanelActive()
+		} else {
+			m.setTree2PanelActive()
+		}
+		return m.dragPaths([]string{tree.nodes[clickedIdx].path})
 	}
 	return nil
 }

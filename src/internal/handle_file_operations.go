@@ -13,6 +13,7 @@ import (
 
 	variable "github.com/fsncps/hyperfile/src/config"
 	"github.com/fsncps/hyperfile/src/internal/ui/notify"
+	"github.com/fsncps/hyperfile/src/internal/xdnd"
 	"github.com/fsncps/hyperfile/src/internal/ui/processbar"
 	"github.com/fsncps/hyperfile/src/internal/utils"
 
@@ -567,15 +568,8 @@ func (m *model) copyPWD() {
 
 // ---- Drag and drop ----
 
-// dragItems launches the configured dnd_tool with the selected or cursor file(s),
-// allowing them to be dragged into external X11/Wayland applications.
-// The TUI is not suspended; the tool runs alongside it.
+// dragItems collects the cursor item (or selection) from tree and calls dragPaths.
 func (m *model) dragItems(tree *treePanelModel) tea.Cmd {
-	tool := common.Config.DNDTool
-	if tool == "" {
-		tool = "dragon"
-	}
-
 	var paths []string
 	if tree.HasSelection() {
 		paths = tree.SelectedPaths()
@@ -586,7 +580,22 @@ func (m *model) dragItems(tree *treePanelModel) tea.Cmd {
 		}
 		paths = []string{node.path}
 	}
+	return m.dragPaths(paths)
+}
 
+// dragPaths initiates drag-and-drop for the given file paths.
+// On X11 ($DISPLAY set): launches dragon and auto-clicks its window via XTest
+// so the user can drag to the target immediately.
+// On non-X11: launches the configured dnd_tool directly.
+func (m *model) dragPaths(paths []string) tea.Cmd {
+	if len(paths) == 0 {
+		return nil
+	}
+
+	tool := common.Config.DNDTool
+	if tool == "" {
+		tool = "dragon"
+	}
 	if _, err := exec.LookPath(tool); err != nil {
 		reqID := m.ioReqCnt
 		m.ioReqCnt++
@@ -599,24 +608,27 @@ func (m *model) dragItems(tree *treePanelModel) tea.Cmd {
 		}
 	}
 
+	if os.Getenv("DISPLAY") != "" {
+		// X11: seamless — dragon opens, cursor warps to it, XTest clicks it.
+		go func() {
+			if err := xdnd.DragonSeamless(tool, paths); err != nil {
+				slog.Error("dragon seamless failed", "error", err)
+			}
+		}()
+		return nil
+	}
+
+	// Non-X11 (Wayland etc): plain tool launch.
 	var args []string
 	if tool == "dragon" {
 		args = append([]string{"--on-top", "--and-exit"}, paths...)
 	} else {
 		args = paths
 	}
-
 	cmd := exec.Command(tool, args...)
 	if err := cmd.Start(); err != nil {
-		slog.Error("dragItems: failed to start dnd tool", "tool", tool, "error", err)
-		reqID := m.ioReqCnt
-		m.ioReqCnt++
-		return func() tea.Msg {
-			return NewNotifyModalMsg(
-				notify.New(true, "Drag failed", err.Error(), notify.NoAction),
-				reqID,
-			)
-		}
+		slog.Error("dragPaths: failed to start dnd tool", "tool", tool, "error", err)
 	}
 	return nil
 }
+
