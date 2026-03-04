@@ -91,7 +91,10 @@ func defaultTreePanel(root string) treePanelModel {
 // are shown regardless of depth. collapsed always takes priority.
 // When rgMatches is non-nil only matching files and their ancestor dirs are shown.
 // Returns a flat list in display order.
-func buildTreeNodes(root string, maxDepth int, collapsed, expanded map[string]bool, showHidden bool, rgMatches map[string]bool) []treeNode {
+func buildTreeNodes(
+	root string, maxDepth int, collapsed, expanded map[string]bool, showHidden bool,
+	rgMatches map[string]bool,
+) []treeNode {
 	nodes := make([]treeNode, 0, 64)
 	var rgAncestors map[string]bool
 	if rgMatches != nil {
@@ -101,7 +104,11 @@ func buildTreeNodes(root string, maxDepth int, collapsed, expanded map[string]bo
 	return nodes
 }
 
-func addTreeNodes(nodes *[]treeNode, dir string, depth, maxDepth int, collapsed, expanded map[string]bool, showHidden bool, rgMatches, rgAncestors map[string]bool) {
+func addTreeNodes(
+	nodes *[]treeNode, dir string, depth, maxDepth int,
+	collapsed, expanded map[string]bool, showHidden bool,
+	rgMatches, rgAncestors map[string]bool,
+) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		slog.Debug("tree: cannot read dir", "dir", dir, "err", err)
@@ -125,23 +132,28 @@ func addTreeNodes(nodes *[]treeNode, dir string, depth, maxDepth int, collapsed,
 		}
 		return 1
 	})
-	for i, e := range visible {
-		path := filepath.Join(dir, e.Name())
-		// rg content filter: skip entries not in the match/ancestor sets.
-		if rgMatches != nil {
-			if e.IsDir() && !rgAncestors[path] {
-				continue
-			}
-			if !e.IsDir() && !rgMatches[path] {
-				continue
+	// When an rg filter is active, pre-compute the filtered list so isLast
+	// can be correctly assigned to the final visible sibling.
+	displayVisible := visible
+	if rgMatches != nil {
+		displayVisible = make([]os.DirEntry, 0, len(visible))
+		for _, e := range visible {
+			p := filepath.Join(dir, e.Name())
+			if e.IsDir() && rgAncestors[p] {
+				displayVisible = append(displayVisible, e)
+			} else if !e.IsDir() && rgMatches[p] {
+				displayVisible = append(displayVisible, e)
 			}
 		}
+	}
+	for i, e := range displayVisible {
+		path := filepath.Join(dir, e.Name())
 		node := treeNode{
 			name:   e.Name(),
 			path:   path,
 			isDir:  e.IsDir(),
 			depth:  depth,
-			isLast: i == len(visible)-1,
+			isLast: i == len(displayVisible)-1,
 		}
 		*nodes = append(*nodes, node)
 		if e.IsDir() {
@@ -200,8 +212,9 @@ func buildDetailEntries(dir string, showHidden bool) []detailEntry {
 // and the match, exclusive of root) for paths in matches.
 func buildRgAncestorDirs(matches map[string]bool, root string) map[string]bool {
 	dirs := make(map[string]bool)
+	sep := root + string(filepath.Separator)
 	for p := range matches {
-		for dir := filepath.Dir(p); dir != root && strings.HasPrefix(dir, root+string(filepath.Separator)); dir = filepath.Dir(dir) {
+		for dir := filepath.Dir(p); dir != root && strings.HasPrefix(dir, sep); dir = filepath.Dir(dir) {
 			dirs[dir] = true
 		}
 	}
