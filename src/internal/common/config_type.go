@@ -139,7 +139,8 @@ type HotkeysType struct {
 	PasteItems  []string `toml:"paste_items"`
 	CutItems    []string `toml:"cut_items"`
 	DeleteItems []string `toml:"delete_items"`
-	DragItems   []string `toml:"drag_items"`
+	DragItems     []string `toml:"drag_items"`
+	ContentSearch []string `toml:"content_search"`
 
 	ExtractFile  []string `toml:"extract_file" comment:"compress and extract"`
 	CompressFile []string `toml:"compress_file"`
