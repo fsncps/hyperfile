@@ -168,11 +168,12 @@ func (msg NotifyModalUpdateMsg) ApplyToModel(m *model) tea.Cmd {
 // RgResultMsg carries the result of an async rg --files-with-matches run.
 // Stale results are discarded: ApplyToModel checks the current search bar value.
 type RgResultMsg struct {
-	BaseMessage
 	panelIdx int
 	query    string
 	matches  map[string]bool
 }
+
+func (msg RgResultMsg) GetReqID() int { return 0 }
 
 func (msg RgResultMsg) ApplyToModel(m *model) tea.Cmd {
 	tree := &m.treePanels[msg.panelIdx]

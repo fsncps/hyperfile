@@ -2,6 +2,7 @@ package internal
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"log/slog"
 	"os"
@@ -847,9 +848,12 @@ func (m *model) launchRgSearch(idx int, query string) tea.Cmd {
 	root := m.treePanels[idx].root
 	return func() tea.Msg {
 		cmd := exec.Command("rg", "--files-with-matches", "--no-messages", "--smart-case", "--", query, root)
-		out, _ := cmd.Output()
+		out, err := cmd.Output()
+		if err != nil {
+			slog.Warn("rg search failed", "query", query, "err", err)
+		}
 		matches := make(map[string]bool)
-		scanner := bufio.NewScanner(strings.NewReader(string(out)))
+		scanner := bufio.NewScanner(bytes.NewReader(out))
 		for scanner.Scan() {
 			if p := strings.TrimSpace(scanner.Text()); p != "" {
 				matches[p] = true
