@@ -19,6 +19,11 @@ func (m *model) handleTreePanelKey(msg string, idx int) tea.Cmd {
 	tree := &m.treePanels[idx]
 	visibleH := m.mainPanelHeight - 2
 
+	// If the rg search bar is focused, route all input through it.
+	if tree.rgSearchBar.Focused() {
+		return m.handleRgSearchBarKey(msg, idx)
+	}
+
 	switch {
 
 	// ---- Tree navigation ----
@@ -107,6 +112,11 @@ func (m *model) handleTreePanelKey(msg string, idx int) tea.Cmd {
 
 	case slices.Contains(common.Hotkeys.ToggleDetailView, msg):
 		m.toggleDetailView(1) // detail view always in right panel
+
+	case slices.Contains(common.Hotkeys.ContentSearch, msg):
+		tree.rgSearchBar.Focus()
+		tree.rgSearchBar.Width = tree.width - 8
+		return nil
 
 	case slices.Contains(common.Hotkeys.ToggleDotFile, msg):
 		m.toggleDotFileController()
@@ -282,4 +292,31 @@ func (m *model) startPreviewDebounce() tea.Cmd {
 		time.Sleep(previewDebounceDuration)
 		return previewTickMsg{}
 	}
+}
+
+// handleRgSearchBarKey handles all input while the tree panel's rg search bar
+// is focused. Navigation keys pass through to the tree; cancel keys clear the
+// filter; all other keys are forwarded to the text input (via updateFilePanelsState)
+// and a debounce tick is posted.
+func (m *model) handleRgSearchBarKey(msg string, idx int) tea.Cmd {
+	tree := &m.treePanels[idx]
+	switch {
+	case slices.Contains(common.Hotkeys.ContentSearch, msg), msg == "esc":
+		tree.rgSearchBar.Blur()
+		tree.rgSearchBar.SetValue("")
+		tree.rgMatches = nil
+		tree.cursor = 0
+		tree.renderIdx = 0
+		tree.rebuild()
+		return nil
+	case slices.Contains(common.Hotkeys.ListUp, msg):
+		tree.ListUp(m.mainPanelHeight - 2)
+		return m.startPreviewDebounce()
+	case slices.Contains(common.Hotkeys.ListDown, msg):
+		tree.ListDown(m.mainPanelHeight - 2)
+		return m.startPreviewDebounce()
+	}
+	// All other keys (printable chars, backspace) are handled by
+	// updateFilePanelsState; we just schedule a debounce tick.
+	return m.startRgDebounce(idx)
 }
