@@ -101,6 +101,28 @@ func (m *model) toggleTree2Panel() {
 	m.recalcPanelWidths()
 }
 
+// toggleDetailView switches panel idx between tree mode and detail mode.
+// When entering detail mode the entries are loaded from the opposite panel's
+// currently selected directory (or its root if the cursor is on a file).
+func (m *model) toggleDetailView(idx int) {
+	tree := &m.treePanels[idx]
+	if tree.mode == treePanelModeDetail {
+		tree.mode = treePanelModeTree
+		return
+	}
+	otherIdx := 1 - idx
+	source := &m.treePanels[otherIdx]
+	root := source.root
+	if node := source.GetSelectedNode(); node != nil && node.isDir {
+		root = node.path
+	}
+	tree.detailRoot = root
+	tree.detailEntries = buildDetailEntries(root, tree.showHidden)
+	tree.cursor = 0
+	tree.renderIdx = 0
+	tree.mode = treePanelModeDetail
+}
+
 // focusNextPanel moves keyboard focus one panel to the right.
 func (m *model) focusNextPanel() {
 	if m.focusPanel == sidebarFocus {

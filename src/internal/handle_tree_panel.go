@@ -35,6 +35,17 @@ func (m *model) handleTreePanelKey(msg string, idx int) tea.Cmd {
 		// (used by file-op infrastructure and navigation tests).
 		// For regular files: only act when in chooser mode (never xdg-open from right arrow).
 		m.treeEnterNode(idx) //nolint:errcheck // returns nil cmd
+		// Sync opposite panel if it is in detail mode.
+		otherIdx := 1 - idx
+		if m.treePanels[otherIdx].mode == treePanelModeDetail {
+			if node := m.treePanels[idx].GetSelectedNode(); node != nil && node.isDir {
+				other := &m.treePanels[otherIdx]
+				other.detailRoot = node.path
+				other.detailEntries = buildDetailEntries(node.path, other.showHidden)
+				other.cursor = 0
+				other.renderIdx = 0
+			}
+		}
 		panel := m.getFocusedFilePanel()
 		if len(panel.element) > 0 {
 			item := panel.getSelectedItem()
@@ -93,6 +104,9 @@ func (m *model) handleTreePanelKey(msg string, idx int) tea.Cmd {
 
 	case slices.Contains(common.Hotkeys.ToggleFilePreviewPanel, msg):
 		m.toggleFilePreviewPanel()
+
+	case slices.Contains(common.Hotkeys.ToggleDetailView, msg):
+		m.toggleDetailView(idx)
 
 	case slices.Contains(common.Hotkeys.ToggleDotFile, msg):
 		m.toggleDotFileController()
@@ -241,11 +255,23 @@ func (m *model) rebuildAllTrees() {
 	for i := range m.treePanels {
 		m.treePanels[i].rebuild()
 	}
+	// Refresh detail entries for any panel currently in detail mode.
+	for i := range m.treePanels {
+		if m.treePanels[i].mode == treePanelModeDetail {
+			m.treePanels[i].detailEntries = buildDetailEntries(m.treePanels[i].detailRoot, m.treePanels[i].showHidden)
+		}
+	}
 }
 
 func (m *model) syncTreeHiddenState() {
 	m.treePanels[0].showHidden = m.toggleDotFile
 	m.treePanels[1].showHidden = m.toggleDotFile
+	// Refresh detail entries for any panel currently in detail mode.
+	for i := range m.treePanels {
+		if m.treePanels[i].mode == treePanelModeDetail {
+			m.treePanels[i].detailEntries = buildDetailEntries(m.treePanels[i].detailRoot, m.treePanels[i].showHidden)
+		}
+	}
 }
 
 // startPreviewDebounce records the cursor-moved timestamp and returns a command
