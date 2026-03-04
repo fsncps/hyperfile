@@ -67,9 +67,13 @@ func TestEntryCount_DetailMode(t *testing.T) {
 }
 
 func TestToggleDetailView_SwitchesToDetailMode(t *testing.T) {
-	dir := populatedTempDir(t)
+	// tree0 cursor starts at 0; ensure the first entry (a dir) has children
+	// so toggleDetailView uses that dir and gets non-empty detailEntries.
+	dir := t.TempDir()
+	subdir := filepath.Join(dir, "subdir")
+	require.NoError(t, os.MkdirAll(subdir, 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(subdir, "file.txt"), []byte("x"), 0644))
 	m := defaultTestModel(dir)
-	// tree1 cursor is on a dir; toggle detail on tree2
 	m.toggleDetailView(1)
 	assert.Equal(t, treePanelModeDetail, m.treePanels[1].mode)
 	assert.NotEmpty(t, m.treePanels[1].detailEntries)
@@ -84,7 +88,14 @@ func TestToggleDetailView_TogglesBackToTree(t *testing.T) {
 }
 
 func TestDetailMode_NavigationUsesEntryCount(t *testing.T) {
-	dir := populatedTempDir(t)
+	// tree0 cursor at 0; first entry must be a dir with multiple children
+	// so detail mode has >1 entry and navigation can move the cursor.
+	dir := t.TempDir()
+	subdir := filepath.Join(dir, "subdir")
+	require.NoError(t, os.MkdirAll(subdir, 0755))
+	for _, name := range []string{"a.txt", "b.txt", "c.txt"} {
+		require.NoError(t, os.WriteFile(filepath.Join(subdir, name), []byte("x"), 0644))
+	}
 	m := defaultTestModel(dir)
 	tree := &m.treePanels[1]
 	m.toggleDetailView(1)

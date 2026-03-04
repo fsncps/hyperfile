@@ -103,7 +103,7 @@ func (m *model) toggleTree2Panel() {
 
 // toggleDetailView switches panel idx between tree mode and detail mode.
 // When entering detail mode the entries are loaded from the opposite panel's
-// root directory.
+// currently selected directory (or its root if the cursor is on a file).
 func (m *model) toggleDetailView(idx int) {
 	tree := &m.treePanels[idx]
 	if tree.mode == treePanelModeDetail {
@@ -113,6 +113,9 @@ func (m *model) toggleDetailView(idx int) {
 	otherIdx := 1 - idx
 	source := &m.treePanels[otherIdx]
 	root := source.root
+	if node := source.GetSelectedNode(); node != nil && node.isDir {
+		root = node.path
+	}
 	tree.detailRoot = root
 	tree.detailEntries = buildDetailEntries(root, tree.showHidden)
 	tree.cursor = 0

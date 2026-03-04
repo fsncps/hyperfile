@@ -196,8 +196,8 @@ func (t *treePanelModel) SetRoot(root string) {
 // rebuild regenerates the node list without changing root or depth settings.
 func (t *treePanelModel) rebuild() {
 	t.nodes = buildTreeNodes(t.root, t.maxDepth, t.collapsed, t.expanded, t.showHidden)
-	if t.cursor >= t.EntryCount() {
-		t.cursor = max(0, t.EntryCount()-1)
+	if t.cursor >= len(t.nodes) {
+		t.cursor = max(0, len(t.nodes)-1)
 	}
 	if t.renderIdx > t.cursor {
 		t.renderIdx = t.cursor
