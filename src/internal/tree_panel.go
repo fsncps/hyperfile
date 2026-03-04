@@ -4,6 +4,8 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
+	"time"
 )
 
 // fileAreaFocus indicates which file-area panel currently has keyboard focus.
@@ -23,6 +25,24 @@ type treeNode struct {
 	isLast bool // last sibling in its parent directory (used for branch-line rendering)
 }
 
+// treePanelMode controls whether the panel shows the tree or the detail list.
+type treePanelMode int
+
+const (
+	treePanelModeTree   treePanelMode = iota
+	treePanelModeDetail               // flat info-rich file list
+)
+
+// detailEntry holds the stat information for one entry in detail-view mode.
+type detailEntry struct {
+	name    string
+	path    string
+	isDir   bool
+	size    int64
+	modTime time.Time
+	mode    os.FileMode
+}
+
 // treePanelModel holds all state for the middle tree panel.
 type treePanelModel struct {
 	root       string
@@ -34,8 +54,11 @@ type treePanelModel struct {
 	expanded   map[string]bool // paths manually expanded beyond maxDepth
 	selected   map[string]bool // paths currently selected; nil = no selection
 	anchor     int             // cursor idx when shift-select began; -1 = unset
-	showHidden bool            // mirrors model.toggleDotFile
-	focusType  filePanelFocusType
+	showHidden    bool            // mirrors model.toggleDotFile
+	mode          treePanelMode
+	detailRoot    string
+	detailEntries []detailEntry
+	focusType     filePanelFocusType
 	open       bool
 	width      int
 }
@@ -78,6 +101,16 @@ func addTreeNodes(nodes *[]treeNode, dir string, depth, maxDepth int, collapsed,
 		}
 		visible = append(visible, e)
 	}
+	// Dirs before files; within each group preserve ReadDir's alphabetical order.
+	slices.SortStableFunc(visible, func(a, b os.DirEntry) int {
+		if a.IsDir() == b.IsDir() {
+			return 0
+		}
+		if a.IsDir() {
+			return -1
+		}
+		return 1
+	})
 	for i, e := range visible {
 		path := filepath.Join(dir, e.Name())
 		node := treeNode{
@@ -93,6 +126,57 @@ func addTreeNodes(nodes *[]treeNode, dir string, depth, maxDepth int, collapsed,
 			addTreeNodes(nodes, path, depth+1, maxDepth, collapsed, expanded, showHidden)
 		}
 	}
+}
+
+// buildDetailEntries reads dir and returns a flat, stat-populated slice sorted
+// directories-first then alphabetically (matching the tree ordering).
+func buildDetailEntries(dir string, showHidden bool) []detailEntry {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		slog.Debug("detail: cannot read dir", "dir", dir, "err", err)
+		return nil
+	}
+	result := make([]detailEntry, 0, len(entries))
+	for _, e := range entries {
+		if len(e.Name()) > 0 && e.Name()[0] == '.' && !showHidden {
+			continue
+		}
+		info, err := e.Info()
+		if err != nil {
+			continue
+		}
+		result = append(result, detailEntry{
+			name:    e.Name(),
+			path:    filepath.Join(dir, e.Name()),
+			isDir:   e.IsDir(),
+			size:    info.Size(),
+			modTime: info.ModTime(),
+			mode:    info.Mode(),
+		})
+	}
+	slices.SortStableFunc(result, func(a, b detailEntry) int {
+		if a.isDir == b.isDir {
+			return 0
+		}
+		if a.isDir {
+			return -1
+		}
+		return 1
+	})
+	return result
+}
+
+// NavigateTo sets the tree root and resets to depth=0, clearing all expansion state.
+// Unlike SetRoot it always rebuilds even when root is unchanged, and forces maxDepth=0.
+func (t *treePanelModel) NavigateTo(root string) {
+	t.ClearSelection()
+	t.root = root
+	t.maxDepth = 0
+	t.cursor = 0
+	t.renderIdx = 0
+	t.collapsed = make(map[string]bool)
+	t.expanded = make(map[string]bool)
+	t.nodes = buildTreeNodes(root, t.maxDepth, t.collapsed, t.expanded, t.showHidden)
 }
 
 // SetRoot resets the tree root and rebuilds nodes.
@@ -360,4 +444,13 @@ func (t *treePanelModel) HasChildren(path string) bool {
 		}
 	}
 	return false
+}
+
+// EntryCount returns the number of navigable entries in the current mode.
+// Tree mode → len(nodes); detail mode → len(detailEntries).
+func (t *treePanelModel) EntryCount() int {
+	if t.mode == treePanelModeDetail {
+		return len(t.detailEntries)
+	}
+	return len(t.nodes)
 }
