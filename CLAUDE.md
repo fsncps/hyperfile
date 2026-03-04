@@ -50,7 +50,7 @@ python testsuite/main.py -d               # Debug mode
   - **`model.go`** — Central Bubble Tea model; `Update()` loop, `recalcPanelWidths()`, `treePanelStartX()`, `handleMouseMsg()` → `tea.Cmd`
   - **`model_render.go`** — `View()` rendering; `getPreviewItemPath()` determines what the preview shows
   - **`key_function.go`** — Hotkey dispatch; `mainKey()` routes all file-area input to the active tree panel via `handleTreePanelKey`
-  - **`tree_panel.go`** — Tree panel state (`treePanelModel`), expand/collapse logic, multi-select (`selected map[string]bool`, `anchor int`), `HasSelection()`, `SelectedPaths()`
+  - **`tree_panel.go`** — Tree panel state (`treePanelModel`), expand/collapse logic, multi-select (`selected map[string]bool`, `anchor int`), `HasSelection()`, `SelectedPaths()`. Two modes: `treePanelModeTree` (default) and `treePanelModeDetail` (flat stat-rich list); `EntryCount()` is the unified length accessor used everywhere instead of `len(nodes)` directly.
   - **`tree_panel_render.go`** — Tree panel rendering; cursor column shows `⠿` drag handle on cursor/selected rows
   - **`handle_tree_panel.go`** — Tree panel key handlers; `setTree1PanelActive()` / `setTree2PanelActive()`
   - **`handle_file_operations.go`** — High-level file I/O (copy, paste, delete, compress, extract, `dragItems`)
@@ -65,9 +65,11 @@ python testsuite/main.py -d               # Debug mode
 
 **3-Panel Layout:** `treePanels[0]` (left, tree1) and `treePanels[1]` (right, tree2) are two independent `treePanelModel` instances — both navigate files and directories freely. Layout order left-to-right: sidebar | tree1 | tree2 | preview. Width split computed in `recalcPanelWidths()`; `treePanelStartX(idx)` returns the terminal column where each tree panel begins (used for mouse hit-testing). Focus switches with `activeFileArea` (`tree1PanelActive` | `tree2PanelActive`). `fileModel.filePanels` is preserved for file-operation infrastructure but not rendered directly.
 
-**Tree Selection:** `treePanelModel.selected` is a `map[string]bool` of selected paths; `anchor` is the cursor index where shift-select began (-1 = unset). `ClearSelection()` is called on navigation. `HasSelection()` / `SelectedPaths()` are used by file operations and DnD.
+**Tree Selection:** `treePanelModel.selected` is a `map[string]bool` of selected paths; `anchor` is the cursor index where shift-select began (-1 = unset). `ClearSelection()` is called on navigation. `HasSelection()` / `SelectedPaths()` are used by file operations and DnD. Shift-selection is disabled in detail mode.
 
-**Drag-and-Drop:** `ctrl+d` and mouse left-click on the `⠿` column both call `dragItems()` in `handle_file_operations.go`. It launches the configured `dnd_tool` (default: `dragon --on-top --and-exit`) with the selected or cursor paths. `handleMouseLeftPress(x, y)` in `model.go` hit-tests against `treePanelStartX(idx)` to detect clicks in cols 1–3 of a tree panel.
+**Tree Root Navigation:** `SetRoot(path)` changes the root (skips if unchanged). `NavigateTo(path)` always resets to `maxDepth=0`, clears expand state, and rebuilds unconditionally — used by sidebar selection. `sidebarSelectDirectory()` in `handle_panel_movement.go` calls `NavigateTo` on tree1 and switches focus to it; triggered by `Confirm` (right) or `ConfirmTyping` (enter) while sidebar is focused.
+
+**Drag-and-Drop:** `ctrl+d` and mouse left-click on cols 1–3 of a tree panel's content area (the `⠿` drag handle) both call `dragItems()` in `handle_file_operations.go`. It launches the configured `dnd_tool` (default: `dragon --on-top --and-exit`) with the selected or cursor paths. `handleMouseLeftPress(x, y)` in `model.go` hit-tests `relX := x - treePanelStartX(idx)`; only `relX` 1–3 fires the drag.
 
 **Backend Interface:** The `backend` package exposes interfaces so unit tests can test file-operation logic without real filesystem calls. UI code imports `backend`; `backend` never imports UI.
 
@@ -77,7 +79,7 @@ python testsuite/main.py -d               # Debug mode
 
 **Process Bar:** Background operations (copy, compress, extract) run in goroutines and post progress updates as Bubble Tea `Cmd` messages.
 
-**Hotkeys:** `common.Hotkeys.Confirm` = `['right']` (navigation confirm). `common.Hotkeys.ConfirmTyping` = `['enter']` (modal/typing confirm). These are intentionally separate — don't conflate them.
+**Hotkeys:** `common.Hotkeys.Confirm` = `['right']` (navigation confirm). `common.Hotkeys.ConfirmTyping` = `['enter']` (modal/typing confirm). These are intentionally separate. Exception: sidebar selection checks both, so Enter and right arrow both navigate tree1 from the sidebar.
 
 ### Configuration Paths (runtime)
 
