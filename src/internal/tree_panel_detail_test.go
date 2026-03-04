@@ -113,3 +113,26 @@ func TestDetailMode_ShiftSelectIsNoop(t *testing.T) {
 	tree.ShiftListDown(20)
 	assert.False(t, tree.HasSelection(), "shift-select should be disabled in detail mode")
 }
+
+func TestConfirm_UpdatesDetailPanelWhenOtherIsInDetailMode(t *testing.T) {
+	// Create a dir with two subdirs, each containing at least one file.
+	dir := t.TempDir()
+	sub1 := filepath.Join(dir, "sub1")
+	sub2 := filepath.Join(dir, "sub2")
+	require.NoError(t, os.MkdirAll(sub1, 0755))
+	require.NoError(t, os.MkdirAll(sub2, 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(sub1, "a.txt"), []byte("x"), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(sub2, "b.txt"), []byte("x"), 0644))
+
+	m := defaultTestModel(dir)
+	// tree1 cursor starts at 0 (sub1). Toggle detail on tree2.
+	m.toggleDetailView(1)
+	require.Equal(t, sub1, m.treePanels[1].detailRoot, "detail root should be sub1 initially")
+
+	// Move tree1 cursor to sub2 (index 2; index 1 is sub1/a.txt) and send Confirm (right arrow).
+	m.treePanels[0].cursor = 2
+	_, _ = TeaUpdate(m, keyMsg("right"))
+
+	assert.Equal(t, sub2, m.treePanels[1].detailRoot,
+		"detail root should update to sub2 after confirming on tree1")
+}

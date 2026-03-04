@@ -35,6 +35,17 @@ func (m *model) handleTreePanelKey(msg string, idx int) tea.Cmd {
 		// (used by file-op infrastructure and navigation tests).
 		// For regular files: only act when in chooser mode (never xdg-open from right arrow).
 		m.treeEnterNode(idx) //nolint:errcheck // returns nil cmd
+		// Sync opposite panel if it is in detail mode.
+		otherIdx := 1 - idx
+		if m.treePanels[otherIdx].mode == treePanelModeDetail {
+			if node := m.treePanels[idx].GetSelectedNode(); node != nil && node.isDir {
+				other := &m.treePanels[otherIdx]
+				other.detailRoot = node.path
+				other.detailEntries = buildDetailEntries(node.path, other.showHidden)
+				other.cursor = 0
+				other.renderIdx = 0
+			}
+		}
 		panel := m.getFocusedFilePanel()
 		if len(panel.element) > 0 {
 			item := panel.getSelectedItem()
