@@ -39,7 +39,7 @@ func DragonSeamless(tool string, paths []string) error {
 		}
 	}
 
-	args := append([]string{"--on-top", "--icon-only", "--and-exit"}, paths...)
+	args := dragonArgs(paths)
 	cmd := exec.Command(tool, args...)
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("dragon: start: %w", err)
@@ -142,8 +142,18 @@ func findNewWindow(conn *xgb.Conn, root xproto.Window, before map[xproto.Window]
 	return 0
 }
 
+func dragonArgs(paths []string) []string {
+	flags := []string{"--on-top", "--and-exit"}
+	if len(paths) > 1 {
+		flags = append(flags, "--all-compact")
+	} else {
+		flags = append(flags, "--icon-only")
+	}
+	return append(flags, paths...)
+}
+
 func launchDragonPlain(tool string, paths []string) error {
-	args := append([]string{"--on-top", "--icon-only", "--and-exit"}, paths...)
+	args := dragonArgs(paths)
 	cmd := exec.Command(tool, args...)
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("dragon: %w", err)
