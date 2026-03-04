@@ -101,22 +101,18 @@ func (m *model) executeOpenCommand() {
 	}
 }
 
-// Switch to the directory where the sidebar cursor is located
+// Switch to the directory where the sidebar cursor is located.
+// Navigates tree1 to the selected path at depth=0 and returns focus to it.
 func (m *model) sidebarSelectDirectory() {
-	// We can't do this when we have only divider directories
-	// m.sidebarModel.directories[m.sidebarModel.cursor].location would point to a divider dir.
 	if m.sidebarModel.NoActualDir() {
 		return
 	}
-	// TODO(Refactor): Move this to a function m.ResetFocus()
-	m.focusPanel = nonePanelFocus
-	panel := m.getFocusedFilePanel()
-
-	err := panel.updateCurrentFilePanelDir(m.sidebarModel.GetCurrentDirectoryLocation())
-	if err != nil {
-		slog.Error("Error switching to sidebar directory", "error", err)
+	path := m.sidebarModel.GetCurrentDirectoryLocation()
+	if path == "" {
+		return
 	}
-	panel.focusType = focus
+	m.treePanels[0].NavigateTo(path)
+	m.setTree1PanelActive()
 }
 
 // Select all item in the file panel (only work on select mode)

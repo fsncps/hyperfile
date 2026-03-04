@@ -145,7 +145,8 @@ func (m *model) mainKey(msg string) tea.Cmd { //nolint: gocyclo,cyclop,funlen //
 func (m *model) normalAndBrowserModeKey(msg string) tea.Cmd {
 	// if not focus on the filepanel return
 	if m.fileModel.filePanels[m.filePanelFocusIndex].focusType != focus {
-		if m.focusPanel == sidebarFocus && slices.Contains(common.Hotkeys.Confirm, msg) {
+		if m.focusPanel == sidebarFocus && (slices.Contains(common.Hotkeys.Confirm, msg) ||
+			slices.Contains(common.Hotkeys.ConfirmTyping, msg)) {
 			m.sidebarSelectDirectory()
 		}
 		if m.focusPanel == sidebarFocus && slices.Contains(common.Hotkeys.FilePanelItemRename, msg) {
