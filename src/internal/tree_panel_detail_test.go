@@ -65,3 +65,40 @@ func TestEntryCount_DetailMode(t *testing.T) {
 	assert.Greater(t, tp.EntryCount(), 0)
 	assert.Equal(t, len(tp.detailEntries), tp.EntryCount())
 }
+
+func TestToggleDetailView_SwitchesToDetailMode(t *testing.T) {
+	dir := populatedTempDir(t)
+	m := defaultTestModel(dir)
+	// tree1 cursor is on a dir; toggle detail on tree2
+	m.toggleDetailView(1)
+	assert.Equal(t, treePanelModeDetail, m.treePanels[1].mode)
+	assert.NotEmpty(t, m.treePanels[1].detailEntries)
+}
+
+func TestToggleDetailView_TogglesBackToTree(t *testing.T) {
+	dir := populatedTempDir(t)
+	m := defaultTestModel(dir)
+	m.toggleDetailView(1)
+	m.toggleDetailView(1)
+	assert.Equal(t, treePanelModeTree, m.treePanels[1].mode)
+}
+
+func TestDetailMode_NavigationUsesEntryCount(t *testing.T) {
+	dir := populatedTempDir(t)
+	m := defaultTestModel(dir)
+	tree := &m.treePanels[1]
+	m.toggleDetailView(1)
+	require.Greater(t, tree.EntryCount(), 1)
+	initialCursor := tree.cursor
+	tree.ListDown(20)
+	assert.Greater(t, tree.cursor, initialCursor, "cursor should move down in detail mode")
+}
+
+func TestDetailMode_ShiftSelectIsNoop(t *testing.T) {
+	dir := populatedTempDir(t)
+	m := defaultTestModel(dir)
+	m.toggleDetailView(1)
+	tree := &m.treePanels[1]
+	tree.ShiftListDown(20)
+	assert.False(t, tree.HasSelection(), "shift-select should be disabled in detail mode")
+}

@@ -94,6 +94,9 @@ func (m *model) handleTreePanelKey(msg string, idx int) tea.Cmd {
 	case slices.Contains(common.Hotkeys.ToggleFilePreviewPanel, msg):
 		m.toggleFilePreviewPanel()
 
+	case slices.Contains(common.Hotkeys.ToggleDetailView, msg):
+		m.toggleDetailView(idx)
+
 	case slices.Contains(common.Hotkeys.ToggleDotFile, msg):
 		m.toggleDotFileController()
 		m.syncTreeHiddenState()

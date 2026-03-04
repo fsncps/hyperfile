@@ -196,8 +196,8 @@ func (t *treePanelModel) SetRoot(root string) {
 // rebuild regenerates the node list without changing root or depth settings.
 func (t *treePanelModel) rebuild() {
 	t.nodes = buildTreeNodes(t.root, t.maxDepth, t.collapsed, t.expanded, t.showHidden)
-	if t.cursor >= len(t.nodes) {
-		t.cursor = max(0, len(t.nodes)-1)
+	if t.cursor >= t.EntryCount() {
+		t.cursor = max(0, t.EntryCount()-1)
 	}
 	if t.renderIdx > t.cursor {
 		t.renderIdx = t.cursor
@@ -304,7 +304,7 @@ func (t *treePanelModel) moveUp() {
 
 // moveDown moves cursor one step down without wrapping (no selection logic).
 func (t *treePanelModel) moveDown(visibleH int) {
-	if t.cursor < len(t.nodes)-1 {
+	if t.cursor < t.EntryCount()-1 {
 		t.cursor++
 		if t.cursor >= t.renderIdx+visibleH {
 			t.renderIdx++
@@ -314,15 +314,15 @@ func (t *treePanelModel) moveDown(visibleH int) {
 
 // ListUp moves the cursor up, wrapping to bottom, and clears any selection.
 func (t *treePanelModel) ListUp(visibleHeight int) {
-	if len(t.nodes) == 0 {
+	if t.EntryCount() == 0 {
 		return
 	}
 	t.ClearSelection()
 	if t.cursor > 0 {
 		t.moveUp()
 	} else {
-		t.cursor = len(t.nodes) - 1
-		maxRender := len(t.nodes) - visibleHeight
+		t.cursor = t.EntryCount() - 1
+		maxRender := t.EntryCount() - visibleHeight
 		if maxRender < 0 {
 			maxRender = 0
 		}
@@ -332,11 +332,11 @@ func (t *treePanelModel) ListUp(visibleHeight int) {
 
 // ListDown moves the cursor down, wrapping to top, and clears any selection.
 func (t *treePanelModel) ListDown(visibleHeight int) {
-	if len(t.nodes) == 0 {
+	if t.EntryCount() == 0 {
 		return
 	}
 	t.ClearSelection()
-	if t.cursor < len(t.nodes)-1 {
+	if t.cursor < t.EntryCount()-1 {
 		t.moveDown(visibleHeight)
 	} else {
 		t.cursor = 0
@@ -400,7 +400,7 @@ func (t *treePanelModel) applyRangeSelection() {
 
 // ShiftListUp extends or shrinks the range selection one step up.
 func (t *treePanelModel) ShiftListUp(visibleH int) {
-	if len(t.nodes) == 0 {
+	if t.mode == treePanelModeDetail || len(t.nodes) == 0 {
 		return
 	}
 	t.setAnchorIfUnset()
@@ -410,7 +410,7 @@ func (t *treePanelModel) ShiftListUp(visibleH int) {
 
 // ShiftListDown extends or shrinks the range selection one step down.
 func (t *treePanelModel) ShiftListDown(visibleH int) {
-	if len(t.nodes) == 0 {
+	if t.mode == treePanelModeDetail || len(t.nodes) == 0 {
 		return
 	}
 	t.setAnchorIfUnset()
