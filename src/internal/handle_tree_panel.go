@@ -106,7 +106,7 @@ func (m *model) handleTreePanelKey(msg string, idx int) tea.Cmd {
 		m.toggleFilePreviewPanel()
 
 	case slices.Contains(common.Hotkeys.ToggleDetailView, msg):
-		m.toggleDetailView(idx)
+		m.toggleDetailView(1) // detail view always in right panel
 
 	case slices.Contains(common.Hotkeys.ToggleDotFile, msg):
 		m.toggleDotFileController()
