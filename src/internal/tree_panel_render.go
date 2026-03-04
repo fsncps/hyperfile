@@ -114,7 +114,11 @@ func (m *model) treePanelRender(idx int) string {
 	const clipCutBG = lipgloss.Color("#281400")  // faint orange
 
 	// One fewer overhead row now (depth merged into header), so +1 visible nodes.
+	// Subtract 2 more when the rg bar is visible (1 content row + 1 section divider).
 	visibleH := m.mainPanelHeight - 2
+	if tree.rgSearchBar.Focused() || tree.rgSearchBar.Value() != "" {
+		visibleH -= 2
+	}
 	end := min(tree.renderIdx+visibleH, len(tree.nodes))
 
 	for i := tree.renderIdx; i < end; i++ {

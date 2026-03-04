@@ -313,10 +313,10 @@ func (m *model) handleRgSearchBarKey(msg string, idx int) tea.Cmd {
 		tree.rebuild()
 		return nil
 	case slices.Contains(common.Hotkeys.ListUp, msg):
-		tree.ListUp(m.mainPanelHeight - 2)
+		tree.ListUp(m.mainPanelHeight - 4)
 		return m.startPreviewDebounce()
 	case slices.Contains(common.Hotkeys.ListDown, msg):
-		tree.ListDown(m.mainPanelHeight - 2)
+		tree.ListDown(m.mainPanelHeight - 4)
 		return m.startPreviewDebounce()
 	}
 	// All other keys (printable chars, backspace) are handled by
