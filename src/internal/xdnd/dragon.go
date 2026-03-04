@@ -39,7 +39,7 @@ func DragonSeamless(tool string, paths []string) error {
 		}
 	}
 
-	args := append([]string{"--icon-only", "--and-exit"}, paths...)
+	args := append([]string{"--on-top", "--icon-only", "--and-exit"}, paths...)
 	cmd := exec.Command(tool, args...)
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("dragon: start: %w", err)
@@ -78,6 +78,13 @@ func DragonSeamless(tool string, paths []string) error {
 	if qp, err := xproto.QueryPointer(conn, screen.Root).Reply(); err == nil {
 		origX, origY = int16(qp.RootX), int16(qp.RootY)
 	}
+
+	// Release any stuck button-1 state left over from a previous aborted drag.
+	// When awesome-client minimizes dragon mid-drag, GTK aborts without sending
+	// ButtonRelease, leaving the XTest button state stuck as "pressed".
+	xtest.FakeInput(conn, xproto.ButtonRelease, 1, 0, screen.Root, cx, cy, 0)
+	conn.Sync()
+	time.Sleep(20 * time.Millisecond)
 
 	// Warp the physical cursor to the centre of dragon's window.
 	xproto.WarpPointer(conn, xproto.WindowNone, screen.Root, 0, 0, 0, 0, cx, cy)
@@ -136,7 +143,7 @@ func findNewWindow(conn *xgb.Conn, root xproto.Window, before map[xproto.Window]
 }
 
 func launchDragonPlain(tool string, paths []string) error {
-	args := append([]string{"--icon-only", "--and-exit"}, paths...)
+	args := append([]string{"--on-top", "--icon-only", "--and-exit"}, paths...)
 	cmd := exec.Command(tool, args...)
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("dragon: %w", err)
