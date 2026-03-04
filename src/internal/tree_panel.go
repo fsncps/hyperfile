@@ -5,7 +5,12 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"time"
+
+	"github.com/charmbracelet/bubbles/textinput"
+
+	"github.com/fsncps/hyperfile/src/internal/common"
 )
 
 // fileAreaFocus indicates which file-area panel currently has keyboard focus.
@@ -61,33 +66,42 @@ type treePanelModel struct {
 	focusType     filePanelFocusType
 	open       bool
 	width      int
+	rgSearchBar textinput.Model
+	rgMatches   map[string]bool // nil = no filter; non-nil = set of matching absolute file paths
+	lastRgInput time.Time       // timestamp of last rg search bar keystroke (debounce sentinel)
 }
 
 func defaultTreePanel(root string) treePanelModel {
 	t := treePanelModel{
-		root:      root,
-		maxDepth:  2,
-		collapsed: make(map[string]bool),
-		expanded:  make(map[string]bool),
-		anchor:    -1,
-		open:      true,
-		focusType: noneFocus,
+		root:        root,
+		maxDepth:    2,
+		collapsed:   make(map[string]bool),
+		expanded:    make(map[string]bool),
+		anchor:      -1,
+		open:        true,
+		focusType:   noneFocus,
+		rgSearchBar: common.GenerateRgSearchBar(),
 	}
-	t.nodes = buildTreeNodes(root, t.maxDepth, t.collapsed, t.expanded, t.showHidden)
+	t.nodes = buildTreeNodes(root, t.maxDepth, t.collapsed, t.expanded, t.showHidden, nil)
 	return t
 }
 
 // buildTreeNodes recursively walks root, honouring collapsed/expanded sets and maxDepth.
 // maxDepth controls auto-expansion on rebuild; manually expanded dirs (expanded map)
 // are shown regardless of depth. collapsed always takes priority.
+// When rgMatches is non-nil only matching files and their ancestor dirs are shown.
 // Returns a flat list in display order.
-func buildTreeNodes(root string, maxDepth int, collapsed, expanded map[string]bool, showHidden bool) []treeNode {
+func buildTreeNodes(root string, maxDepth int, collapsed, expanded map[string]bool, showHidden bool, rgMatches map[string]bool) []treeNode {
 	nodes := make([]treeNode, 0, 64)
-	addTreeNodes(&nodes, root, 0, maxDepth, collapsed, expanded, showHidden)
+	var rgAncestors map[string]bool
+	if rgMatches != nil {
+		rgAncestors = buildRgAncestorDirs(rgMatches, root)
+	}
+	addTreeNodes(&nodes, root, 0, maxDepth, collapsed, expanded, showHidden, rgMatches, rgAncestors)
 	return nodes
 }
 
-func addTreeNodes(nodes *[]treeNode, dir string, depth, maxDepth int, collapsed, expanded map[string]bool, showHidden bool) {
+func addTreeNodes(nodes *[]treeNode, dir string, depth, maxDepth int, collapsed, expanded map[string]bool, showHidden bool, rgMatches, rgAncestors map[string]bool) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		slog.Debug("tree: cannot read dir", "dir", dir, "err", err)
@@ -113,6 +127,15 @@ func addTreeNodes(nodes *[]treeNode, dir string, depth, maxDepth int, collapsed,
 	})
 	for i, e := range visible {
 		path := filepath.Join(dir, e.Name())
+		// rg content filter: skip entries not in the match/ancestor sets.
+		if rgMatches != nil {
+			if e.IsDir() && !rgAncestors[path] {
+				continue
+			}
+			if !e.IsDir() && !rgMatches[path] {
+				continue
+			}
+		}
 		node := treeNode{
 			name:   e.Name(),
 			path:   path,
@@ -121,9 +144,16 @@ func addTreeNodes(nodes *[]treeNode, dir string, depth, maxDepth int, collapsed,
 			isLast: i == len(visible)-1,
 		}
 		*nodes = append(*nodes, node)
-		// Expand if within auto-depth OR manually expanded, but never if collapsed.
-		if e.IsDir() && (depth < maxDepth || expanded[path]) && !collapsed[path] {
-			addTreeNodes(nodes, path, depth+1, maxDepth, collapsed, expanded, showHidden)
+		if e.IsDir() {
+			var shouldExpand bool
+			if rgMatches != nil {
+				shouldExpand = rgAncestors[path]
+			} else {
+				shouldExpand = (depth < maxDepth || expanded[path]) && !collapsed[path]
+			}
+			if shouldExpand {
+				addTreeNodes(nodes, path, depth+1, maxDepth, collapsed, expanded, showHidden, rgMatches, rgAncestors)
+			}
 		}
 	}
 }
@@ -166,6 +196,18 @@ func buildDetailEntries(dir string, showHidden bool) []detailEntry {
 	return result
 }
 
+// buildRgAncestorDirs returns the set of all ancestor directories (between root
+// and the match, exclusive of root) for paths in matches.
+func buildRgAncestorDirs(matches map[string]bool, root string) map[string]bool {
+	dirs := make(map[string]bool)
+	for p := range matches {
+		for dir := filepath.Dir(p); dir != root && strings.HasPrefix(dir, root+string(filepath.Separator)); dir = filepath.Dir(dir) {
+			dirs[dir] = true
+		}
+	}
+	return dirs
+}
+
 // NavigateTo sets the tree root and resets to depth=0, clearing all expansion state.
 // Unlike SetRoot it always rebuilds even when root is unchanged, and forces maxDepth=0.
 func (t *treePanelModel) NavigateTo(root string) {
@@ -176,7 +218,10 @@ func (t *treePanelModel) NavigateTo(root string) {
 	t.renderIdx = 0
 	t.collapsed = make(map[string]bool)
 	t.expanded = make(map[string]bool)
-	t.nodes = buildTreeNodes(root, t.maxDepth, t.collapsed, t.expanded, t.showHidden)
+	t.rgMatches = nil
+	t.rgSearchBar.SetValue("")
+	t.rgSearchBar.Blur()
+	t.nodes = buildTreeNodes(root, t.maxDepth, t.collapsed, t.expanded, t.showHidden, nil)
 }
 
 // SetRoot resets the tree root and rebuilds nodes.
@@ -190,12 +235,15 @@ func (t *treePanelModel) SetRoot(root string) {
 	t.renderIdx = 0
 	t.collapsed = make(map[string]bool)
 	t.expanded = make(map[string]bool)
-	t.nodes = buildTreeNodes(root, t.maxDepth, t.collapsed, t.expanded, t.showHidden)
+	t.rgMatches = nil
+	t.rgSearchBar.SetValue("")
+	t.rgSearchBar.Blur()
+	t.nodes = buildTreeNodes(root, t.maxDepth, t.collapsed, t.expanded, t.showHidden, nil)
 }
 
 // rebuild regenerates the node list without changing root or depth settings.
 func (t *treePanelModel) rebuild() {
-	t.nodes = buildTreeNodes(t.root, t.maxDepth, t.collapsed, t.expanded, t.showHidden)
+	t.nodes = buildTreeNodes(t.root, t.maxDepth, t.collapsed, t.expanded, t.showHidden, t.rgMatches)
 	if t.cursor >= len(t.nodes) {
 		t.cursor = max(0, len(t.nodes)-1)
 	}

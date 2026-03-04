@@ -265,6 +265,21 @@ func GenerateSearchBar() textinput.Model {
 	return ti
 }
 
+// GenerateRgSearchBar creates the textinput used for rg content search in tree panels.
+func GenerateRgSearchBar() textinput.Model {
+	ti := textinput.New()
+	ti.Cursor.Style = FooterCursorStyle
+	ti.Cursor.TextStyle = FooterStyle
+	ti.TextStyle = FilePanelStyle
+	ti.Prompt = FilePanelTopDirectoryIconStyle.Render(" rg: ")
+	ti.Cursor.Blink = true
+	ti.PlaceholderStyle = FilePanelStyle
+	ti.Placeholder = "search file contents..."
+	ti.Blur()
+	ti.CharLimit = 256
+	return ti
+}
+
 func GeneratePromptTextInput() textinput.Model {
 	t := textinput.New()
 	t.Prompt = ""
