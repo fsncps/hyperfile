@@ -35,7 +35,11 @@ func (m *model) treePanelRender(idx int) string {
 	if pathAvail < 4 {
 		pathAvail = 4
 	}
-	truncatedRoot := common.TruncateTextBeginning(tree.root, pathAvail, "...")
+	displayRoot := tree.root
+	if tree.mode == treePanelModeDetail {
+		displayRoot = tree.detailRoot
+	}
+	truncatedRoot := common.TruncateTextBeginning(displayRoot, pathAvail, "...")
 	pad := max(1, cw-iconW-ansi.StringWidth(truncatedRoot)-depthW)
 	headerLine := iconPart +
 		common.FilePanelTopPathStyle.Render(truncatedRoot) +

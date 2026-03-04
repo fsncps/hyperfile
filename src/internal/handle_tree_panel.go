@@ -255,11 +255,23 @@ func (m *model) rebuildAllTrees() {
 	for i := range m.treePanels {
 		m.treePanels[i].rebuild()
 	}
+	// Refresh detail entries for any panel currently in detail mode.
+	for i := range m.treePanels {
+		if m.treePanels[i].mode == treePanelModeDetail {
+			m.treePanels[i].detailEntries = buildDetailEntries(m.treePanels[i].detailRoot, m.treePanels[i].showHidden)
+		}
+	}
 }
 
 func (m *model) syncTreeHiddenState() {
 	m.treePanels[0].showHidden = m.toggleDotFile
 	m.treePanels[1].showHidden = m.toggleDotFile
+	// Refresh detail entries for any panel currently in detail mode.
+	for i := range m.treePanels {
+		if m.treePanels[i].mode == treePanelModeDetail {
+			m.treePanels[i].detailEntries = buildDetailEntries(m.treePanels[i].detailRoot, m.treePanels[i].showHidden)
+		}
+	}
 }
 
 // startPreviewDebounce records the cursor-moved timestamp and returns a command
