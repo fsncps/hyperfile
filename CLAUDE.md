@@ -56,6 +56,7 @@ python testsuite/main.py -d               # Debug mode
   - **`handle_file_operations.go`** — High-level file I/O (copy, paste, delete, compress, extract, `dragItems`)
   - **`handle_panel_movement.go`**, **`handle_panel_navigation.go`**, **`handle_panel_up_down.go`** — Split-out key handler groups
   - **`config_function.go`** — Production startup: loads config/theme files, calls `icon.InitIcon` then `icon.ApplyIconTheme`
+  - **`utils/`** — Zero-dependency internal utilities (file ops, shell helpers, tea/UI helpers, fzf integration)
 - **`src/pkg/`** — Independent packages: `file_preview/` (image/text rendering), `string_function/`
 - **`src/hyperfile_config/`** — Embedded default configs (TOML) for config, hotkeys, and themes
 
@@ -76,6 +77,8 @@ python testsuite/main.py -d               # Debug mode
 **Embedded Defaults:** Default configs/themes are embedded at compile time via Go's `embed` directive in `src/hyperfile_config/`. User configs at `~/.config/hyperfile/` override them.
 
 **Icon Theming:** `src/config/icon/function.go` has `InitIcon(nerdfont, dirColor)` and `ApplyIconTheme(map[string]string)`. The latter overrides `Color` (never the glyph) in the global `Icons`/`Folders` maps. Both are called in `config_function.go` at startup. Users add an optional `[icon_colors]` section to any theme TOML (e.g. `folder = "#7aa2f7"`, `go = "#00ADD8"`); keys match entries in `icon.Icons` / `icon.Folders`.
+
+**Background Op Messages:** `model_msg.go` defines the `ModelUpdateMessage` interface — each background operation (paste, delete, compress, extract) sends a typed message (e.g. `PasteOperationMsg`) with `ApplyToModel(*model) tea.Cmd`. This lets goroutines post typed updates back to the main loop without a central switch.
 
 **Process Bar:** Background operations (copy, compress, extract) run in goroutines and post progress updates as Bubble Tea `Cmd` messages.
 
