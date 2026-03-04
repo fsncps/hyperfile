@@ -18,6 +18,9 @@ import (
 func (m *model) handleTreePanelKey(msg string, idx int) tea.Cmd {
 	tree := &m.treePanels[idx]
 	visibleH := m.mainPanelHeight - 2
+	if tree.rgSearchBar.Focused() || tree.rgSearchBar.Value() != "" {
+		visibleH -= 2
+	}
 
 	// If the rg search bar is focused, route all input through it.
 	if tree.rgSearchBar.Focused() {
