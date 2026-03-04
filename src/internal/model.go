@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"bufio"
 	"errors"
 	"log/slog"
 	"os"
@@ -32,6 +33,13 @@ const previewDebounceDuration = 500 * time.Millisecond
 
 // previewTickMsg is dispatched after previewDebounceDuration to trigger a re-render.
 type previewTickMsg struct{}
+
+// rgSearchTickMsg fires after the rg debounce delay. If inputTime no longer
+// matches tree.lastRgInput the keystroke was superseded and the tick is dropped.
+type rgSearchTickMsg struct {
+	panelIdx  int
+	inputTime time.Time
+}
 
 // These represent model's state information, its not a global preperty
 var LastTimeCursorMove = [2]int{int(time.Now().UnixMicro()), 0} //nolint: gochecknoglobals // TODO: Move to model struct
@@ -95,6 +103,21 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case previewTickMsg:
 		// No-op: just triggers View() re-evaluation after the dwell delay.
+
+	case rgSearchTickMsg:
+		tree := &m.treePanels[msg.panelIdx]
+		if !msg.inputTime.Equal(tree.lastRgInput) {
+			break // superseded by a later keystroke
+		}
+		query := tree.rgSearchBar.Value()
+		if query == "" {
+			tree.rgMatches = nil
+			tree.cursor = 0
+			tree.renderIdx = 0
+			tree.rebuild()
+			break
+		}
+		updateCmd = m.launchRgSearch(msg.panelIdx, query)
 
 	default:
 		slog.Debug("Message of type that is not handled")
@@ -804,4 +827,34 @@ func checkBatCmd() string {
 		return "batcat"
 	}
 	return ""
+}
+
+// startRgDebounce records the current time on the tree panel and posts a tick
+// that fires 300ms later. Subsequent keystrokes update lastRgInput so older
+// ticks are discarded on arrival.
+func (m *model) startRgDebounce(idx int) tea.Cmd {
+	now := time.Now()
+	m.treePanels[idx].lastRgInput = now
+	return func() tea.Msg {
+		time.Sleep(300 * time.Millisecond)
+		return rgSearchTickMsg{panelIdx: idx, inputTime: now}
+	}
+}
+
+// launchRgSearch runs rg --files-with-matches in a goroutine and returns a
+// RgResultMsg with the matching file paths.
+func (m *model) launchRgSearch(idx int, query string) tea.Cmd {
+	root := m.treePanels[idx].root
+	return func() tea.Msg {
+		cmd := exec.Command("rg", "--files-with-matches", "--no-messages", "--smart-case", "--", query, root)
+		out, _ := cmd.Output()
+		matches := make(map[string]bool)
+		scanner := bufio.NewScanner(strings.NewReader(string(out)))
+		for scanner.Scan() {
+			if p := strings.TrimSpace(scanner.Text()); p != "" {
+				matches[p] = true
+			}
+		}
+		return RgResultMsg{query: query, panelIdx: idx, matches: matches}
+	}
 }

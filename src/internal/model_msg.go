@@ -164,3 +164,25 @@ func (msg NotifyModalUpdateMsg) ApplyToModel(m *model) tea.Cmd {
 	m.notifyModel = msg.m
 	return nil
 }
+
+// RgResultMsg carries the result of an async rg --files-with-matches run.
+// Stale results are discarded: ApplyToModel checks the current search bar value.
+type RgResultMsg struct {
+	BaseMessage
+	panelIdx int
+	query    string
+	matches  map[string]bool
+}
+
+func (msg RgResultMsg) ApplyToModel(m *model) tea.Cmd {
+	tree := &m.treePanels[msg.panelIdx]
+	if tree.rgSearchBar.Value() != msg.query {
+		slog.Debug("RgResultMsg: stale, discarding", "want", tree.rgSearchBar.Value(), "got", msg.query)
+		return nil
+	}
+	tree.rgMatches = msg.matches
+	tree.cursor = 0
+	tree.renderIdx = 0
+	tree.rebuild()
+	return nil
+}
