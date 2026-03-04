@@ -111,14 +111,14 @@ func (m *model) treePanelRender(idx int) string {
 		if node.isDir {
 			hasKids := tree.HasChildren(node.path)
 			if hasKids && tree.IsExpanded(node.path) && node.depth < tree.maxDepth {
-				expandIndicator = " "
+				expandIndicator = ""
 			} else if hasKids {
-				expandIndicator = " "
+				expandIndicator = ""
 			} else {
-				expandIndicator = ""
+				expandIndicator = " "
 			}
 		} else {
-			expandIndicator = ""
+			expandIndicator = " "
 		}
 
 		// Width available for PrettierName (icon + name), accounting for branch prefix.
