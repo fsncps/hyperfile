@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"time"
 )
 
@@ -45,22 +46,27 @@ type detailEntry struct {
 
 // treePanelModel holds all state for the middle tree panel.
 type treePanelModel struct {
-	root       string
-	nodes      []treeNode      // flattened visible list rebuilt on change
-	cursor     int
-	renderIdx  int
-	maxDepth   int             // auto-expand depth on rebuild; does not limit manual expansion
-	collapsed  map[string]bool // paths manually collapsed (takes priority over depth)
-	expanded   map[string]bool // paths manually expanded beyond maxDepth
-	selected   map[string]bool // paths currently selected; nil = no selection
-	anchor     int             // cursor idx when shift-select began; -1 = unset
-	showHidden    bool            // mirrors model.toggleDotFile
-	mode          treePanelMode
-	detailRoot    string
-	detailEntries []detailEntry
-	focusType     filePanelFocusType
-	open       bool
-	width      int
+	root              string
+	nodes             []treeNode // flattened visible list rebuilt on change
+	cursor            int
+	renderIdx         int
+	maxDepth          int             // auto-expand depth on rebuild; does not limit manual expansion
+	collapsed         map[string]bool // paths manually collapsed (takes priority over depth)
+	expanded          map[string]bool // paths manually expanded beyond maxDepth
+	selected          map[string]bool // paths currently selected; nil = no selection
+	anchor            int             // cursor idx when shift-select began; -1 = unset
+	showHidden        bool            // mirrors model.toggleDotFile
+	mode              treePanelMode
+	detailRoot        string
+	detailEntries     []detailEntry
+	focusType         filePanelFocusType
+	open              bool
+	width             int
+	filter            string          // type-to-filter query (filename)
+	contentFilter     map[string]bool // paths matching content search (nil = no content filter)
+	contentQuery      string          // original content search query
+	contentSearchMode bool
+	showRootNode      bool
 }
 
 func defaultTreePanel(root string) treePanelModel {
@@ -84,6 +90,21 @@ func defaultTreePanel(root string) treePanelModel {
 func buildTreeNodes(root string, maxDepth int, collapsed, expanded map[string]bool, showHidden bool) []treeNode {
 	nodes := make([]treeNode, 0, 64)
 	addTreeNodes(&nodes, root, 0, maxDepth, collapsed, expanded, showHidden)
+	return nodes
+}
+
+func buildTreeNodesWithRoot(root string, maxDepth int, collapsed, expanded map[string]bool, showHidden bool) []treeNode {
+	nodes := make([]treeNode, 0, 65)
+	nodes = append(nodes, treeNode{
+		name:   filepath.Base(root),
+		path:   root,
+		isDir:  true,
+		depth:  -1,
+		isLast: true,
+	})
+	if !collapsed[root] {
+		addTreeNodes(&nodes, root, 0, maxDepth, collapsed, expanded, showHidden)
+	}
 	return nodes
 }
 
@@ -174,9 +195,10 @@ func (t *treePanelModel) NavigateTo(root string) {
 	t.maxDepth = 0
 	t.cursor = 0
 	t.renderIdx = 0
+	t.showRootNode = true
 	t.collapsed = make(map[string]bool)
 	t.expanded = make(map[string]bool)
-	t.nodes = buildTreeNodes(root, t.maxDepth, t.collapsed, t.expanded, t.showHidden)
+	t.nodes = buildTreeNodesWithRoot(root, t.maxDepth, t.collapsed, t.expanded, t.showHidden)
 }
 
 // SetRoot resets the tree root and rebuilds nodes.
@@ -188,6 +210,7 @@ func (t *treePanelModel) SetRoot(root string) {
 	t.root = root
 	t.cursor = 0
 	t.renderIdx = 0
+	t.showRootNode = false
 	t.collapsed = make(map[string]bool)
 	t.expanded = make(map[string]bool)
 	t.nodes = buildTreeNodes(root, t.maxDepth, t.collapsed, t.expanded, t.showHidden)
@@ -195,7 +218,11 @@ func (t *treePanelModel) SetRoot(root string) {
 
 // rebuild regenerates the node list without changing root or depth settings.
 func (t *treePanelModel) rebuild() {
-	t.nodes = buildTreeNodes(t.root, t.maxDepth, t.collapsed, t.expanded, t.showHidden)
+	if t.showRootNode {
+		t.nodes = buildTreeNodesWithRoot(t.root, t.maxDepth, t.collapsed, t.expanded, t.showHidden)
+	} else {
+		t.nodes = buildTreeNodes(t.root, t.maxDepth, t.collapsed, t.expanded, t.showHidden)
+	}
 	if t.cursor >= len(t.nodes) {
 		t.cursor = max(0, len(t.nodes)-1)
 	}
@@ -206,10 +233,11 @@ func (t *treePanelModel) rebuild() {
 
 // ToggleNode expands a collapsed dir or collapses an expanded dir at cursor.
 func (t *treePanelModel) ToggleNode() {
-	if len(t.nodes) == 0 || t.cursor >= len(t.nodes) {
+	nodes := t.filteredNodes()
+	if len(nodes) == 0 || t.cursor >= len(nodes) {
 		return
 	}
-	node := t.nodes[t.cursor]
+	node := nodes[t.cursor]
 	if !node.isDir {
 		return
 	}
@@ -228,10 +256,11 @@ func (t *treePanelModel) ToggleNode() {
 
 // ExpandNode ensures the dir at cursor is expanded regardless of maxDepth.
 func (t *treePanelModel) ExpandNode() {
-	if len(t.nodes) == 0 || t.cursor >= len(t.nodes) {
+	nodes := t.filteredNodes()
+	if len(nodes) == 0 || t.cursor >= len(nodes) {
 		return
 	}
-	node := t.nodes[t.cursor]
+	node := nodes[t.cursor]
 	if !node.isDir {
 		return
 	}
@@ -245,10 +274,11 @@ func (t *treePanelModel) ExpandNode() {
 
 // CollapseNode collapses the dir at cursor, or the parent dir if already collapsed / file.
 func (t *treePanelModel) CollapseNode() {
-	if len(t.nodes) == 0 || t.cursor >= len(t.nodes) {
+	nodes := t.filteredNodes()
+	if len(nodes) == 0 || t.cursor >= len(nodes) {
 		return
 	}
-	node := t.nodes[t.cursor]
+	node := nodes[t.cursor]
 	if node.isDir && !t.collapsed[node.path] {
 		t.collapsed[node.path] = true
 		delete(t.expanded, node.path)
@@ -261,7 +291,7 @@ func (t *treePanelModel) CollapseNode() {
 		t.collapsed[parentPath] = true
 		delete(t.expanded, parentPath)
 		// Find parent position in visible node list
-		for i, n := range t.nodes {
+		for i, n := range nodes {
 			if n.path == parentPath {
 				t.cursor = i
 				break
@@ -288,6 +318,16 @@ func (t *treePanelModel) RootUp() {
 	parent := filepath.Dir(t.root)
 	if parent == t.root {
 		return // already at filesystem root
+	}
+	if t.showRootNode {
+		t.ClearSelection()
+		t.root = parent
+		t.cursor = 0
+		t.renderIdx = 0
+		t.collapsed = make(map[string]bool)
+		t.expanded = make(map[string]bool)
+		t.nodes = buildTreeNodesWithRoot(parent, t.maxDepth, t.collapsed, t.expanded, t.showHidden)
+		return
 	}
 	t.SetRoot(parent)
 }
@@ -385,7 +425,8 @@ func (t *treePanelModel) setAnchorIfUnset() {
 }
 
 func (t *treePanelModel) applyRangeSelection() {
-	if t.anchor < 0 || t.anchor >= len(t.nodes) {
+	nodes := t.filteredNodes()
+	if t.anchor < 0 || t.anchor >= len(nodes) {
 		return
 	}
 	lo, hi := t.anchor, t.cursor
@@ -393,14 +434,14 @@ func (t *treePanelModel) applyRangeSelection() {
 		lo, hi = hi, lo
 	}
 	t.selected = make(map[string]bool, hi-lo+1)
-	for i := lo; i <= hi && i < len(t.nodes); i++ {
-		t.selected[t.nodes[i].path] = true
+	for i := lo; i <= hi && i < len(nodes); i++ {
+		t.selected[nodes[i].path] = true
 	}
 }
 
 // ShiftListUp extends or shrinks the range selection one step up.
 func (t *treePanelModel) ShiftListUp(visibleH int) {
-	if t.mode == treePanelModeDetail || len(t.nodes) == 0 {
+	if t.mode == treePanelModeDetail || len(t.filteredNodes()) == 0 {
 		return
 	}
 	t.setAnchorIfUnset()
@@ -410,7 +451,7 @@ func (t *treePanelModel) ShiftListUp(visibleH int) {
 
 // ShiftListDown extends or shrinks the range selection one step down.
 func (t *treePanelModel) ShiftListDown(visibleH int) {
-	if t.mode == treePanelModeDetail || len(t.nodes) == 0 {
+	if t.mode == treePanelModeDetail || len(t.filteredNodes()) == 0 {
 		return
 	}
 	t.setAnchorIfUnset()
@@ -420,10 +461,11 @@ func (t *treePanelModel) ShiftListDown(visibleH int) {
 
 // GetSelectedNode returns a copy of the node at cursor, or nil if empty.
 func (t *treePanelModel) GetSelectedNode() *treeNode {
-	if len(t.nodes) == 0 || t.cursor >= len(t.nodes) {
+	nodes := t.filteredNodes()
+	if len(nodes) == 0 || t.cursor >= len(nodes) {
 		return nil
 	}
-	n := t.nodes[t.cursor]
+	n := nodes[t.cursor]
 	return &n
 }
 
@@ -452,5 +494,104 @@ func (t *treePanelModel) EntryCount() int {
 	if t.mode == treePanelModeDetail {
 		return len(t.detailEntries)
 	}
-	return len(t.nodes)
+	return len(t.filteredNodes())
+}
+
+// filteredNodes returns the tree nodes filtered by the current filter string
+// and content search results. When both are empty, returns all nodes.
+func (t *treePanelModel) filteredNodes() []treeNode {
+	if t.filter == "" && t.contentFilter == nil {
+		return t.nodes
+	}
+	result := make([]treeNode, 0)
+	filterLower := strings.ToLower(t.filter)
+	for _, n := range t.nodes {
+		if n.depth < 0 {
+			result = append(result, n)
+			continue
+		}
+		// Check name filter
+		if t.filter != "" && !strings.Contains(strings.ToLower(n.name), filterLower) {
+			continue
+		}
+		// Check content filter
+		if t.contentFilter != nil && !t.contentFilter[n.path] {
+			continue
+		}
+		result = append(result, n)
+	}
+	return result
+}
+
+// appendFilterChar adds a printable character to the filter string.
+func (t *treePanelModel) appendFilterChar(ch string) {
+	t.filter += ch
+	t.cursor = 0
+	t.renderIdx = 0
+}
+
+// deleteFilterChar removes the last character from the filter string.
+func (t *treePanelModel) deleteFilterChar() {
+	if t.filter == "" {
+		return
+	}
+	runes := []rune(t.filter)
+	t.filter = string(runes[:len(runes)-1])
+	t.cursor = 0
+	t.renderIdx = 0
+}
+
+// clearFilter clears both the name filter and content filter.
+func (t *treePanelModel) clearFilter() {
+	t.filter = ""
+	t.contentFilter = nil
+	t.contentQuery = ""
+	t.contentSearchMode = false
+	t.cursor = 0
+	t.renderIdx = 0
+}
+
+func (t *treePanelModel) clearContentFilter() {
+	t.contentFilter = nil
+	t.contentQuery = ""
+	t.contentSearchMode = false
+	t.cursor = 0
+	t.renderIdx = 0
+}
+
+func (t *treePanelModel) beginContentSearch() {
+	t.filter = ""
+	t.contentSearchMode = true
+	t.contentQuery = ""
+	t.contentFilter = nil
+	t.cursor = 0
+	t.renderIdx = 0
+}
+
+func (t *treePanelModel) appendContentQueryChar(ch string) {
+	t.contentQuery += ch
+	t.cursor = 0
+	t.renderIdx = 0
+}
+
+func (t *treePanelModel) deleteContentQueryChar() {
+	if t.contentQuery == "" {
+		return
+	}
+	runes := []rune(t.contentQuery)
+	t.contentQuery = string(runes[:len(runes)-1])
+	t.cursor = 0
+	t.renderIdx = 0
+}
+
+// setContentFilter sets the content filter from ripgrep results.
+func (t *treePanelModel) setContentFilter(paths []string, query string) {
+	t.contentFilter = make(map[string]bool)
+	for _, p := range paths {
+		t.contentFilter[p] = true
+	}
+	t.contentQuery = query
+	t.contentSearchMode = true
+	t.cursor = 0
+	t.renderIdx = 0
 }

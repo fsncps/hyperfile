@@ -23,15 +23,15 @@ func (m *model) treePanelRender(idx int) string {
 	r := ui.FilePanelRenderer(m.mainPanelHeight+2, tree.width+2, focused)
 
 	// Top bar: path left-aligned, depth right-aligned in the same header row.
-	depthStr := "d:" + strconv.Itoa(tree.maxDepth)
+	rightStr := "d:" + strconv.Itoa(tree.maxDepth)
 	if tree.HasSelection() {
-		depthStr += fmt.Sprintf(" [%d]", len(tree.selected))
+		rightStr += fmt.Sprintf(" [%d]", len(tree.selected))
 	}
 	iconPart := common.FilePanelTopDirectoryIcon
 	iconW := ansi.StringWidth(iconPart)
-	depthW := len(depthStr) // ASCII-safe
+	rightW := ansi.StringWidth(rightStr)
 	cw := r.ContentWidth()
-	pathAvail := cw - iconW - depthW - 1 // -1 for minimum gap
+	pathAvail := cw - iconW - rightW - 1 // -1 for minimum gap
 	if pathAvail < 4 {
 		pathAvail = 4
 	}
@@ -40,13 +40,26 @@ func (m *model) treePanelRender(idx int) string {
 		displayRoot = tree.detailRoot
 	}
 	truncatedRoot := common.TruncateTextBeginning(displayRoot, pathAvail, "...")
-	pad := max(1, cw-iconW-ansi.StringWidth(truncatedRoot)-depthW)
+	pad := max(1, cw-iconW-ansi.StringWidth(truncatedRoot)-rightW)
 	headerLine := iconPart +
 		common.FilePanelTopPathStyle.Render(truncatedRoot) +
 		strings.Repeat(" ", pad) +
-		common.FilePanelStyle.Render(depthStr)
+		common.FilePanelStyle.Render(rightStr)
 	r.AddLines(headerLine)
 	r.AddSection()
+
+	filterBarRows := 0
+	if tree.contentSearchMode || tree.contentQuery != "" || tree.filter != "" {
+		filterBarRows = 1
+		inputLabel := icon.Search + icon.Space + tree.filter
+		if tree.contentSearchMode || tree.contentQuery != "" {
+			inputLabel = "󰙔: " + tree.contentQuery
+		}
+		inputWidth := ansi.StringWidth(inputLabel)
+		popupPad := max(0, r.ContentWidth()-inputWidth)
+		r.AddLines(strings.Repeat(" ", popupPad) + common.FilePanelStyle.Render(inputLabel))
+		r.AddSection()
+	}
 
 	// ── Detail view mode ───────────────────────────────────────────────────
 	if tree.mode == treePanelModeDetail {
@@ -54,7 +67,7 @@ func (m *model) treePanelRender(idx int) string {
 			r.AddLines(common.FilePanelNoneText)
 			return r.Render()
 		}
-		visibleH := m.mainPanelHeight - 2
+		visibleH := m.mainPanelHeight - 2 - filterBarRows
 		end := min(tree.renderIdx+visibleH, len(tree.detailEntries))
 		// Fixed column widths: perms(10) + space + size(8) + space + date(12) + space = 32
 		const fixedCols = 32
@@ -81,7 +94,8 @@ func (m *model) treePanelRender(idx int) string {
 	}
 	// ── Tree mode (existing render below) ──────────────────────────────────
 
-	if len(tree.nodes) == 0 {
+	nodes := tree.filteredNodes()
+	if len(nodes) == 0 {
 		r.AddLines(common.FilePanelNoneText)
 		return r.Render()
 	}
@@ -95,11 +109,11 @@ func (m *model) treePanelRender(idx int) string {
 	const clipCutBG = lipgloss.Color("#281400")  // faint orange
 
 	// One fewer overhead row now (depth merged into header), so +1 visible nodes.
-	visibleH := m.mainPanelHeight - 2
-	end := min(tree.renderIdx+visibleH, len(tree.nodes))
+	visibleH := m.mainPanelHeight - 2 - filterBarRows
+	end := min(tree.renderIdx+visibleH, len(nodes))
 
 	for i := tree.renderIdx; i < end; i++ {
-		node := tree.nodes[i]
+		node := nodes[i]
 
 		// Cursor indicator
 		cursorChar := " "
@@ -108,7 +122,7 @@ func (m *model) treePanelRender(idx int) string {
 		}
 
 		// Branch prefix: ancestor continuation lines + own branch character
-		branchStr := treeNodeBranchPrefix(tree.nodes, i)
+		branchStr := treeNodeBranchPrefix(nodes, i)
 
 		// Expand/collapse indicator for directories
 		var expandIndicator string
@@ -188,6 +202,9 @@ func formatDetailSize(bytes int64) string {
 func treeNodeBranchPrefix(nodes []treeNode, idx int) string {
 	node := nodes[idx]
 	depth := node.depth
+	if depth < 0 {
+		return ""
+	}
 
 	var b strings.Builder
 	// Ancestor continuation lines (one per ancestor level above this node)

@@ -197,6 +197,11 @@ func getHelpMenuData() []helpMenuModalData { //nolint: funlen // This should be 
 			hotkeyWorkType: globalType,
 		},
 		{
+			hotkey:         common.Hotkeys.ContentSearch,
+			description:    "Search file contents in active tree",
+			hotkeyWorkType: globalType,
+		},
+		{
 			hotkey:         common.Hotkeys.PinnedDirectory,
 			description:    "Pin or Unpin folder to sidebar (can be auto saved)",
 			hotkeyWorkType: globalType,

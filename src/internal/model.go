@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/fsncps/hyperfile/src/config/icon"
+	"github.com/fsncps/hyperfile/src/internal/backend"
 	"github.com/fsncps/hyperfile/src/internal/common"
 	"github.com/fsncps/hyperfile/src/internal/ui/metadata"
 	"github.com/fsncps/hyperfile/src/internal/ui/notify"
@@ -504,6 +505,9 @@ func (m *model) applyPromptModalAction(action common.ModelAction) {
 	case common.OpenPanelAction:
 		actionErr = m.createNewFilePanelRelativeToCurrent(action.Location)
 		successMsg = "New panel opened"
+	case common.ContentSearchAction:
+		actionErr = m.contentSearchInActiveTree(action.Query)
+		successMsg = "Content filter applied"
 	default:
 		actionErr = errors.New("unhandled action type")
 	}
@@ -537,6 +541,37 @@ func (m *model) splitPanel() error {
 func (m *model) createNewFilePanelRelativeToCurrent(path string) error {
 	currentDir := m.fileModel.filePanels[m.filePanelFocusIndex].location
 	return m.createNewFilePanel(utils.ResolveAbsPath(currentDir, path))
+}
+
+func (m *model) contentSearchInActiveTree(query string) error {
+	if query == "" {
+		m.treePanels[int(m.activeFileArea)].clearContentFilter()
+		return nil
+	}
+	tree := &m.treePanels[int(m.activeFileArea)]
+	searcher := backend.NewRipgrepSearcher()
+	paths, err := searcher.Search(tree.root, query)
+	if err != nil {
+		return err
+	}
+	if len(paths) == 0 {
+		tree.setContentFilter([]string{}, query)
+		return nil
+	}
+	absPaths := make([]string, 0, len(paths))
+	for _, p := range paths {
+		candidate := p
+		if !filepath.IsAbs(candidate) {
+			candidate = filepath.Join(tree.root, candidate)
+		}
+		ap, absErr := filepath.Abs(candidate)
+		if absErr != nil {
+			continue
+		}
+		absPaths = append(absPaths, ap)
+	}
+	tree.setContentFilter(absPaths, query)
+	return nil
 }
 
 // simulates a 'cd' action

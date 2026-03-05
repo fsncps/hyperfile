@@ -44,3 +44,11 @@ type OpenPanelAction struct {
 func (o OpenPanelAction) String() string {
 	return "OpenPanelAction at " + o.Location
 }
+
+type ContentSearchAction struct {
+	Query string
+}
+
+func (c ContentSearchAction) String() string {
+	return "ContentSearchAction with query " + c.Query
+}

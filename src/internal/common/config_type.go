@@ -103,8 +103,8 @@ type ConfigType struct {
 	BorderMiddleLeft  string `toml:"border_middle_left"`
 	BorderMiddleRight string `toml:"border_middle_right"`
 
-	Metadata          bool `toml:"metadata" comment:"\n==========PLUGINS========== #\nPlugins means that you need to install some external dependencies to use them.\n\nShow more detailed metadata, please install exiftool before enabling this plugin!"`
-	EnableMD5Checksum bool `toml:"enable_md5_checksum" comment:"Enable MD5 checksum generation for files"`
+	Metadata          bool   `toml:"metadata" comment:"\n==========PLUGINS========== #\nPlugins means that you need to install some external dependencies to use them.\n\nShow more detailed metadata, please install exiftool before enabling this plugin!"`
+	EnableMD5Checksum bool   `toml:"enable_md5_checksum" comment:"Enable MD5 checksum generation for files"`
 	ZoxideSupport     bool   `toml:"zoxide_support" comment:"Zoxide support for the fast navigation"`
 	DNDTool           string `toml:"dnd_tool" comment:"Tool used for drag-and-drop to external apps. X11: \"dragon\", Wayland: \"ripdrag\"."`
 
@@ -171,6 +171,7 @@ type HotkeysType struct {
 
 	ParentDirectory []string `toml:"parent_directory" comment:"=================================================================================================\nNormal mode hotkeys (can conflict with other modes, cannot conflict with global hotkeys)"`
 	SearchBar       []string `toml:"search_bar"`
+	ContentSearch   []string `toml:"content_search" comment:"search file contents with ripgrep"`
 
 	FilePanelSelectModeItemsSelectDown []string `toml:"file_panel_select_mode_items_select_down" comment:"=================================================================================================\nSelect mode hotkeys (can conflict with other modes, cananot conflict with global hotkeys)"`
 	FilePanelSelectModeItemsSelectUp   []string `toml:"file_panel_select_mode_items_select_up"`

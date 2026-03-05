@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"slices"
 	"time"
+	"unicode"
 
 	"github.com/fsncps/hyperfile/src/internal/common"
 
@@ -63,7 +64,27 @@ func (m *model) handleTreePanelKey(msg string, idx int) tea.Cmd {
 		return nil
 
 	case msg == "backspace":
-		m.treePanels[idx].RootUp()
+		if tree.contentSearchMode {
+			if tree.contentQuery != "" {
+				tree.deleteContentQueryChar()
+				if err := m.contentSearchInActiveTree(tree.contentQuery); err != nil {
+					slog.Error("content search failed", "error", err)
+				}
+			} else {
+				tree.clearContentFilter()
+			}
+			return m.startPreviewDebounce()
+		}
+		if tree.filter != "" {
+			tree.deleteFilterChar()
+			return m.startPreviewDebounce()
+		}
+		tree.RootUp()
+		return m.startPreviewDebounce()
+
+	case msg == "esc":
+		tree.clearFilter()
+		return m.startPreviewDebounce()
 
 	case slices.Contains(common.Hotkeys.ParentDirectory, msg):
 		// Collapse tree node; also drive file panel navigation.
@@ -136,6 +157,16 @@ func (m *model) handleTreePanelKey(msg string, idx int) tea.Cmd {
 	case slices.Contains(common.Hotkeys.OpenSPFPrompt, msg):
 		m.promptModal.Open(false)
 
+	case slices.Contains(common.Hotkeys.ContentSearch, msg):
+		tree.beginContentSearch()
+
+	case msg == "." && !tree.contentSearchMode && tree.filter == "":
+		node := tree.GetSelectedNode()
+		if node != nil && node.isDir {
+			tree.NavigateTo(node.path)
+			return m.startPreviewDebounce()
+		}
+
 	case slices.Contains(common.Hotkeys.OpenSortOptionsMenu, msg):
 		m.openSortOptionsMenu()
 
@@ -156,9 +187,6 @@ func (m *model) handleTreePanelKey(msg string, idx int) tea.Cmd {
 	// ---- File operations (act on focused file panel) ----
 	case slices.Contains(common.Hotkeys.PasteItems, msg):
 		return m.treePasteCmd(tree)
-
-	case slices.Contains(common.Hotkeys.DragItems, msg):
-		return m.dragItems(tree)
 
 	case slices.Contains(common.Hotkeys.FilePanelItemCreate, msg):
 		m.panelCreateNewFile()
@@ -219,6 +247,21 @@ func (m *model) handleTreePanelKey(msg string, idx int) tea.Cmd {
 		err := m.createNewFilePanel(variable.HomeDir)
 		if err != nil {
 			slog.Error("error while creating new panel", "error", err)
+		}
+
+	default:
+		runes := []rune(msg)
+		if len(runes) == 1 && !unicode.IsControl(runes[0]) {
+			if tree.contentSearchMode {
+				tree.appendContentQueryChar(msg)
+				if err := m.contentSearchInActiveTree(tree.contentQuery); err != nil {
+					slog.Error("content search failed", "error", err)
+				}
+			} else {
+				// Type-to-filter: any printable single character appends to the filter
+				tree.appendFilterChar(msg)
+			}
+			return m.startPreviewDebounce()
 		}
 	}
 
