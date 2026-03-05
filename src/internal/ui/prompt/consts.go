@@ -7,9 +7,10 @@ import "time"
 const (
 	promptHeadlineText = "superfile Prompt"
 
-	OpenCommand  = "open"
-	SplitCommand = "split"
-	CdCommand    = "cd"
+	OpenCommand          = "open"
+	SplitCommand         = "split"
+	CdCommand            = "cd"
+	ContentSearchCommand = "content"
 
 	// We could later make this configurable. But, not needed now.
 	spfPromptChar   = ">"
@@ -68,6 +69,11 @@ func defaultCommandSlice() []promptCommand {
 			command:     CdCommand,
 			usage:       CdCommand + " <PATH>",
 			description: "Change directory of current panel",
+		},
+		{
+			command:     ContentSearchCommand,
+			usage:       ContentSearchCommand + " <QUERY>",
+			description: "Filter tree entries by file contents using ripgrep",
 		},
 	}
 }
