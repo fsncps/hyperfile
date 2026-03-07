@@ -37,6 +37,8 @@ correct = "#47ef7d"
 error = "#d70000"
 hint = "#5bd9f3"
 cancel = "#6575ab"
+cursor_line_fg = "#f8f8f2"
+cursor_line_bg = "#2a1212"
 gradient_color = ["#720000", "#ff0000"]
 
 # file panel special items

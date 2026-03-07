@@ -34,10 +34,12 @@ footer_fg = "#D3C6AA"
 modal_fg = "#D3C6AA"
 
 # ========= Special Color =========
-cursor = "#A7C080" 
-correct = "#A7C080" 
-error = "#E67E80" 
-hint = "#7FBBB3"  
+cursor = "#A7C080"
+cursor_line_fg = "#D3C6AA"
+cursor_line_bg = "#374145"
+correct = "#A7C080"
+error = "#E67E80"
+hint = "#7FBBB3"
 cancel = "#859289" 
 # Gradient color can only have two color!
 gradient_color = ["#A7C080", "#E67E80"] 

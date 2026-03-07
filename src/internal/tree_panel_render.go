@@ -83,7 +83,7 @@ func (m *model) treePanelRender(idx int) string {
 			date := e.modTime.Format("Jan 02 15:04")
 			line := name + " " + perms + " " + size + " " + date
 			if i == tree.cursor {
-				line = common.FilePanelCursorStyle.Render(line)
+				line = common.FilePanelCursorLineStyle.Render(line)
 			}
 			r.AddLines(line)
 		}
@@ -158,7 +158,7 @@ func (m *model) treePanelRender(idx int) string {
 		line := common.TreeBranchStyle.Render(branchStr) +
 			expandIndicator + " " + rendered
 		if i == tree.cursor {
-			line = common.FilePanelCursorStyle.Render(line)
+			line = common.FilePanelCursorLineStyle.Render(line)
 		}
 
 		r.AddLines(line)
