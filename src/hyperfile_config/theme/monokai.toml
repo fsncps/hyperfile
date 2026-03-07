@@ -37,6 +37,8 @@ sidebar_fg = "#F8F8F2" # Subtext0
 cancel = "#E6DB74" # Maroon
 correct = "#A6E22E" # Green
 cursor = "#66D9EF" # Rosewater
+cursor_line_fg = "#F8F8F2"
+cursor_line_bg = "#3e3d32"
 error = "#F92672" # Red
 hint = "#66D9EF" # Sapphire
 # Gradient color can only have two color!

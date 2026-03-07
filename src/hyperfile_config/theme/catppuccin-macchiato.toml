@@ -35,6 +35,8 @@ modal_fg = "#a5adcb"       # Subtext0
 
 # ========= Special Color =========
 cursor = "#f4dbd6"  # Rosewater
+cursor_line_fg = "#cad3f5"
+cursor_line_bg = "#363a4f"
 correct = "#a6da95" # Green
 error = "#ed8796"   # Red
 hint = "#7dc4e4"    # Sapphire

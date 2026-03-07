@@ -39,6 +39,8 @@ correct = "#AAD94C"
 error = "#FF3333"
 hint = "#36A3D9"
 cancel = "#F07178"
+cursor_line_fg = "#B3B1AD"
+cursor_line_bg = "#1f2430"
 # Gradient color can only have two colors!
 gradient_color = ["#FFB454", "#36A3D9"]
 
