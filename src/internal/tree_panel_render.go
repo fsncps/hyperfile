@@ -71,23 +71,21 @@ func (m *model) treePanelRender(idx int) string {
 		end := min(tree.renderIdx+visibleH, len(tree.detailEntries))
 		// Fixed column widths: perms(10) + space + size(8) + space + date(12) + space = 32
 		const fixedCols = 32
-		cursorOverhead := 2 // cursorChar + space
-		nameWidth := r.ContentWidth() - cursorOverhead - fixedCols
+		nameWidth := r.ContentWidth() - 2 - fixedCols // 2 = leading space padding
 		if nameWidth < 4 {
 			nameWidth = 4
 		}
 		for i := tree.renderIdx; i < end; i++ {
 			e := tree.detailEntries[i]
-			cursorChar := " "
-			if i == tree.cursor {
-				cursorChar = icon.Cursor
-			}
+			isCursor := i == tree.cursor
 			name := common.PrettierName(e.name, nameWidth, e.isDir, false, common.FilePanelBGColor)
 			perms := e.mode.String() // "-rwxr-xr-x" = 10 chars
 			size := formatDetailSize(e.size)
 			date := e.modTime.Format("Jan 02 15:04")
-			line := common.FilePanelCursorStyle.Render(cursorChar+" ") +
-				name + " " + perms + " " + size + " " + date
+			line := "  " + name + " " + perms + " " + size + " " + date
+			if isCursor {
+				line = common.FilePanelCursorLineStyle.Render(line)
+			}
 			r.AddLines(line)
 		}
 		return r.Render()
