@@ -114,12 +114,7 @@ func (m *model) treePanelRender(idx int) string {
 
 	for i := tree.renderIdx; i < end; i++ {
 		node := nodes[i]
-
-		// Cursor indicator
-		cursorChar := " "
-		if i == tree.cursor {
-			cursorChar = icon.Cursor
-		}
+		isCursor := i == tree.cursor
 
 		// Branch prefix: ancestor continuation lines + own branch character
 		branchStr := treeNodeBranchPrefix(nodes, i)
@@ -141,7 +136,7 @@ func (m *model) treePanelRender(idx int) string {
 
 		// Width available for PrettierName (icon + name), accounting for branch prefix.
 		// branchStr is pure ASCII/box-chars so byte length = display width here.
-		overhead := 2 + ansi.StringWidth(branchStr) + 2 // cursor+space + branch + indicator+space
+		overhead := ansi.StringWidth(branchStr) + 2 // branch + indicator+space
 		nameWidth := r.ContentWidth() - overhead
 		if nameWidth < 4 {
 			nameWidth = 4
@@ -164,9 +159,12 @@ func (m *model) treePanelRender(idx int) string {
 			bgColor,
 		)
 
-		line := common.FilePanelCursorStyle.Render(cursorChar+" ") +
-			common.TreeBranchStyle.Render(branchStr) +
+		line := common.TreeBranchStyle.Render(branchStr) +
 			expandIndicator + " " + rendered
+
+		if isCursor {
+			line = common.FilePanelCursorLineStyle.Render(line)
+		}
 
 		r.AddLines(line)
 	}
