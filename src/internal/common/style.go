@@ -253,6 +253,10 @@ func TransparentAllBackgroundColor() {
 		filePanelItemSelectedBGColor = lipgloss.Color(TransparentBackgroundColor)
 	}
 
+	if FilePanelBGColor == filePanelCursorLineBGColor {
+		filePanelCursorLineBGColor = lipgloss.Color(TransparentBackgroundColor)
+	}
+
 	FullScreenBGColor = lipgloss.Color(TransparentBackgroundColor)
 	FilePanelBGColor = lipgloss.Color(TransparentBackgroundColor)
 	SidebarBGColor = lipgloss.Color(TransparentBackgroundColor)
