@@ -35,6 +35,8 @@ modal_fg = "#a9b1d6"
 
 # ========= Special Color =========
 cursor = "#ff9e64"
+cursor_line_fg = "#c0caf5"
+cursor_line_bg = "#283457"
 correct = "#9ece6a"
 error = "#f7768e"
 hint = "#7dcfff"

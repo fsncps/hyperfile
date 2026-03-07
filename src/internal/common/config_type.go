@@ -32,6 +32,8 @@ type ThemeType struct {
 
 	// Special Color
 	Cursor             string   `toml:"cursor"`
+	CursorLineFG       string   `toml:"cursor_line_fg"`
+	CursorLineBG       string   `toml:"cursor_line_bg"`
 	Correct            string   `toml:"correct"`
 	Error              string   `toml:"error"`
 	Hint               string   `toml:"hint"`

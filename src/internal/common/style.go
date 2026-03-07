@@ -27,9 +27,10 @@ var (
 )
 
 var (
-	FilePanelCursorStyle lipgloss.Style
-	FooterCursorStyle    lipgloss.Style
-	ModalCursorStyle     lipgloss.Style
+	FilePanelCursorStyle     lipgloss.Style
+	FilePanelCursorLineStyle lipgloss.Style
+	FooterCursorStyle        lipgloss.Style
+	ModalCursorStyle         lipgloss.Style
 )
 
 var (
@@ -94,11 +95,13 @@ var (
 	FooterFGColor     lipgloss.Color
 	ModalFGColor      lipgloss.Color
 
-	cursorColor  lipgloss.Color
-	correctColor lipgloss.Color
-	errorColor   lipgloss.Color
-	hintColor    lipgloss.Color
-	cancelColor  lipgloss.Color
+	cursorColor                lipgloss.Color
+	filePanelCursorLineFGColor lipgloss.Color
+	filePanelCursorLineBGColor lipgloss.Color
+	correctColor               lipgloss.Color
+	errorColor                 lipgloss.Color
+	hintColor                  lipgloss.Color
+	cancelColor                lipgloss.Color
 
 	filePanelTopDirectoryIconColor lipgloss.Color
 	filePanelTopPathColor          lipgloss.Color
@@ -147,6 +150,8 @@ func LoadThemeConfig() { //nolint: funlen // Variable initialization
 	ModalFGColor = lipgloss.Color(Theme.ModalFG)
 
 	cursorColor = lipgloss.Color(Theme.Cursor)
+	filePanelCursorLineFGColor = lipgloss.Color(Theme.CursorLineFG)
+	filePanelCursorLineBGColor = lipgloss.Color(Theme.CursorLineBG)
 	correctColor = lipgloss.Color(Theme.Correct)
 	errorColor = lipgloss.Color(Theme.Error)
 	hintColor = lipgloss.Color(Theme.Hint)
@@ -191,6 +196,7 @@ func LoadThemeConfig() { //nolint: funlen // Variable initialization
 
 	// Cursor
 	FilePanelCursorStyle = lipgloss.NewStyle().Foreground(cursorColor).Background(FilePanelBGColor)
+	FilePanelCursorLineStyle = lipgloss.NewStyle().Foreground(filePanelCursorLineFGColor).Background(filePanelCursorLineBGColor)
 	FooterCursorStyle = lipgloss.NewStyle().Foreground(cursorColor).Background(FooterBGColor)
 	ModalCursorStyle = lipgloss.NewStyle().Foreground(cursorColor).Background(ModalBGColor)
 
