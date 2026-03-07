@@ -95,6 +95,22 @@ func TestModel_getPromptAction(t *testing.T) {
 			expectedErrMsg: "",
 		},
 		{
+			name:           "Correct content command",
+			text:           ContentSearchCommand + " foo bar",
+			shellMode:      false,
+			expectecAction: common.ContentSearchAction{Query: "foo bar"},
+			expectedErr:    false,
+			expectedErrMsg: "",
+		},
+		{
+			name:           "content with no arguments",
+			text:           ContentSearchCommand,
+			shellMode:      false,
+			expectecAction: common.NoAction{},
+			expectedErr:    true,
+			expectedErrMsg: "content command needs at least one search term",
+		},
+		{
 			name:           "open with three arguments",
 			text:           OpenCommand + " /abc /xyz",
 			shellMode:      false,

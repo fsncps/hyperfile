@@ -172,6 +172,13 @@ func (m *Model) Open(shellMode bool) {
 	_ = m.textInput.Focus()
 }
 
+func (m *Model) OpenSPFWithPrefill(prefill string) {
+	m.open = true
+	m.setShellMode(false)
+	m.textInput.SetValue(prefill)
+	_ = m.textInput.Focus()
+}
+
 func (m *Model) setShellMode(shellMode bool) {
 	m.shellMode = shellMode
 	m.textInput.Prompt = shellPrompt(m.shellMode) + " "

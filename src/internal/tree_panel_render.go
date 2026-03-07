@@ -51,9 +51,9 @@ func (m *model) treePanelRender(idx int) string {
 	filterBarRows := 0
 	if tree.contentSearchMode || tree.contentQuery != "" || tree.filter != "" {
 		filterBarRows = 1
-		inputLabel := icon.Search + icon.Space + tree.filter
+		inputLabel := "" + icon.Space + tree.filter
 		if tree.contentSearchMode || tree.contentQuery != "" {
-			inputLabel = "󰙔: " + tree.contentQuery
+			inputLabel = icon.Search + ": " + tree.contentQuery
 		}
 		inputWidth := ansi.StringWidth(inputLabel)
 		popupPad := max(0, r.ContentWidth()-inputWidth)
@@ -71,19 +71,18 @@ func (m *model) treePanelRender(idx int) string {
 		end := min(tree.renderIdx+visibleH, len(tree.detailEntries))
 		// Fixed column widths: perms(10) + space + size(8) + space + date(12) + space = 32
 		const fixedCols = 32
-		nameWidth := r.ContentWidth() - 2 - fixedCols // 2 = leading space padding
+		nameWidth := r.ContentWidth() - fixedCols
 		if nameWidth < 4 {
 			nameWidth = 4
 		}
 		for i := tree.renderIdx; i < end; i++ {
 			e := tree.detailEntries[i]
-			isCursor := i == tree.cursor
 			name := common.PrettierName(e.name, nameWidth, e.isDir, false, common.FilePanelBGColor)
 			perms := e.mode.String() // "-rwxr-xr-x" = 10 chars
 			size := formatDetailSize(e.size)
 			date := e.modTime.Format("Jan 02 15:04")
-			line := "  " + name + " " + perms + " " + size + " " + date
-			if isCursor {
+			line := name + " " + perms + " " + size + " " + date
+			if i == tree.cursor {
 				line = common.FilePanelCursorLineStyle.Render(line)
 			}
 			r.AddLines(line)
@@ -112,7 +111,6 @@ func (m *model) treePanelRender(idx int) string {
 
 	for i := tree.renderIdx; i < end; i++ {
 		node := nodes[i]
-		isCursor := i == tree.cursor
 
 		// Branch prefix: ancestor continuation lines + own branch character
 		branchStr := treeNodeBranchPrefix(nodes, i)
@@ -159,8 +157,7 @@ func (m *model) treePanelRender(idx int) string {
 
 		line := common.TreeBranchStyle.Render(branchStr) +
 			expandIndicator + " " + rendered
-
-		if isCursor {
+		if i == tree.cursor {
 			line = common.FilePanelCursorLineStyle.Render(line)
 		}
 

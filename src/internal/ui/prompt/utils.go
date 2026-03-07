@@ -54,6 +54,15 @@ func getPromptAction(shellMode bool, value string, cwdLocation string) (common.M
 		return common.OpenPanelAction{
 			Location: promptArgs[1],
 		}, nil
+	case ContentSearchCommand:
+		if len(promptArgs) < 2 {
+			return noAction, invalidCmdError{
+				uiMsg: "content command needs at least one search term",
+			}
+		}
+		return common.ContentSearchAction{
+			Query: strings.Join(promptArgs[1:], " "),
+		}, nil
 
 	default:
 		return noAction, invalidCmdError{
