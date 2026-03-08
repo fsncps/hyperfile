@@ -246,3 +246,19 @@ func MakePrintable(line string) string {
 	// We will keep it false only if it can cause a rendering problem
 	return MakePrintableWithEscCheck(line, true)
 }
+
+// PrettierNameWithBG formats a file/directory name with icon and a custom background color.
+// This is used for cursor line styling where the background should match the cursor line.
+func PrettierNameWithBG(name string, width int, isDir bool, isSelected bool, bgColor lipgloss.Color) string {
+	style := GetElementIcon(name, isDir, Config.Nerdfont)
+	if isSelected {
+		return StringColorRender(lipgloss.Color(style.Color), bgColor).
+			Render(style.Icon+" ") +
+			lipgloss.NewStyle().Foreground(filePanelItemSelectedFGColor).Background(bgColor).
+				Render(TruncateText(name, width, "..."))
+	}
+	return StringColorRender(lipgloss.Color(style.Color), bgColor).
+		Render(style.Icon+" ") +
+		lipgloss.NewStyle().Foreground(FilePanelFGColor).Background(bgColor).
+			Render(TruncateText(name, width, "..."))
+}

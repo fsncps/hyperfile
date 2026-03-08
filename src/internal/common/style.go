@@ -59,6 +59,7 @@ var (
 )
 
 var TreeBranchStyle lipgloss.Style
+var TreeBranchCursorLineStyle lipgloss.Style
 
 // Sidebar section-header styles — fixed accent colours, independent of theme.
 var (
@@ -97,7 +98,7 @@ var (
 
 	cursorColor                lipgloss.Color
 	filePanelCursorLineFGColor lipgloss.Color
-	filePanelCursorLineBGColor lipgloss.Color
+	FilePanelCursorLineBGColor lipgloss.Color
 	correctColor               lipgloss.Color
 	errorColor                 lipgloss.Color
 	hintColor                  lipgloss.Color
@@ -151,7 +152,7 @@ func LoadThemeConfig() { //nolint: funlen // Variable initialization
 
 	cursorColor = lipgloss.Color(Theme.Cursor)
 	filePanelCursorLineFGColor = lipgloss.Color(Theme.CursorLineFG)
-	filePanelCursorLineBGColor = lipgloss.Color(Theme.CursorLineBG)
+	FilePanelCursorLineBGColor = lipgloss.Color(Theme.CursorLineBG)
 	correctColor = lipgloss.Color(Theme.Correct)
 	errorColor = lipgloss.Color(Theme.Error)
 	hintColor = lipgloss.Color(Theme.Hint)
@@ -196,7 +197,7 @@ func LoadThemeConfig() { //nolint: funlen // Variable initialization
 
 	// Cursor
 	FilePanelCursorStyle = lipgloss.NewStyle().Foreground(cursorColor).Background(FilePanelBGColor)
-	FilePanelCursorLineStyle = lipgloss.NewStyle().Foreground(filePanelCursorLineFGColor).Background(filePanelCursorLineBGColor)
+	FilePanelCursorLineStyle = lipgloss.NewStyle().Foreground(filePanelCursorLineFGColor).Background(FilePanelCursorLineBGColor)
 	FooterCursorStyle = lipgloss.NewStyle().Foreground(cursorColor).Background(FooterBGColor)
 	ModalCursorStyle = lipgloss.NewStyle().Foreground(cursorColor).Background(ModalBGColor)
 
@@ -230,6 +231,7 @@ func LoadThemeConfig() { //nolint: funlen // Variable initialization
 
 	// Tree panel branch lines
 	TreeBranchStyle = lipgloss.NewStyle().Foreground(FilePanelBorderColor).Background(FilePanelBGColor)
+	TreeBranchCursorLineStyle = lipgloss.NewStyle().Foreground(FilePanelBorderColor).Background(FilePanelCursorLineBGColor)
 
 	// Sidebar section headers (fixed accent colours)
 	SideBarPlacesHeaderStyle = lipgloss.NewStyle().
@@ -253,8 +255,8 @@ func TransparentAllBackgroundColor() {
 		filePanelItemSelectedBGColor = lipgloss.Color(TransparentBackgroundColor)
 	}
 
-	if FilePanelBGColor == filePanelCursorLineBGColor {
-		filePanelCursorLineBGColor = lipgloss.Color(TransparentBackgroundColor)
+	if FilePanelBGColor == FilePanelCursorLineBGColor {
+		FilePanelCursorLineBGColor = lipgloss.Color(TransparentBackgroundColor)
 	}
 
 	FullScreenBGColor = lipgloss.Color(TransparentBackgroundColor)

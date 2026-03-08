@@ -77,18 +77,29 @@ func (m *model) treePanelRender(idx int) string {
 		}
 		for i := tree.renderIdx; i < end; i++ {
 			e := tree.detailEntries[i]
-			name := common.PrettierName(e.name, nameWidth, e.isDir, false, common.FilePanelBGColor)
+			isCursorRow := i == tree.cursor
+
+			// Determine background color - cursor line takes precedence
+			bgColor := common.FilePanelBGColor
+			if isCursorRow {
+				bgColor = common.FilePanelCursorLineBGColor
+			}
+
+			name := common.PrettierName(e.name, nameWidth, e.isDir, false, bgColor)
 			perms := e.mode.String() // "-rwxr-xr-x" = 10 chars
 			size := formatDetailSize(e.size)
 			date := e.modTime.Format("Jan 02 15:04")
-			line := name + " " + perms + " " + size + " " + date
-			if i == tree.cursor {
+
+			// Style the fixed columns with the background color
+			fixedStyle := lipgloss.NewStyle().Background(bgColor)
+			line := name + " " + fixedStyle.Render(perms+" "+size+" "+date)
+
+			if isCursorRow {
 				// Pad to full content width so background fills the line
 				lineW := ansi.StringWidth(line)
 				if lineW < cw {
-					line += strings.Repeat(" ", cw-lineW)
+					line += fixedStyle.Render(strings.Repeat(" ", cw-lineW))
 				}
-				line = common.FilePanelCursorLineStyle.Render(line)
 			}
 			r.AddLines(line)
 		}
@@ -144,15 +155,27 @@ func (m *model) treePanelRender(idx int) string {
 		}
 
 		isSelected := tree.selected[node.path]
+		isCursorRow := i == tree.cursor
+		
+		// Determine background color - cursor line takes precedence
 		bgColor := common.FilePanelBGColor
-		if clipSet[node.path] {
+		if isCursorRow {
+			bgColor = common.FilePanelCursorLineBGColor
+		} else if clipSet[node.path] {
 			if m.copyItems.cut {
 				bgColor = clipCutBG
 			} else {
 				bgColor = clipCopyBG
 			}
 		}
-		rendered := common.PrettierName(
+		
+		// Use cursor line background for branch when cursor row
+		branchStyle := common.TreeBranchStyle
+		if isCursorRow {
+			branchStyle = common.TreeBranchCursorLineStyle
+		}
+		
+		rendered := common.PrettierNameWithBG(
 			node.name,
 			nameWidth,
 			node.isDir,
@@ -160,16 +183,17 @@ func (m *model) treePanelRender(idx int) string {
 			bgColor,
 		)
 
-		line := common.TreeBranchStyle.Render(branchStr) +
-			expandIndicator + " " + rendered
-		if i == tree.cursor {
+		// Style for expand indicator (needs background for cursor row)
+		expandStyle := lipgloss.NewStyle().Background(bgColor)
+		line := branchStyle.Render(branchStr) +
+			expandStyle.Render(expandIndicator+" ") + rendered
+		if isCursorRow {
 			// Pad to full content width so background fills the line
 			lineW := ansi.StringWidth(line)
 			cw := r.ContentWidth()
 			if lineW < cw {
-				line += strings.Repeat(" ", cw-lineW)
+				line += expandStyle.Render(strings.Repeat(" ", cw-lineW))
 			}
-			line = common.FilePanelCursorLineStyle.Render(line)
 		}
 
 		r.AddLines(line)
