@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
+	"unicode"
 )
 
 // Cancel typing modal e.g. create file or directory
@@ -141,20 +143,23 @@ func (m *model) confirmSearch() {
 
 // Help menu panel list up
 func (m *model) helpMenuListUp() {
-	if m.helpMenu.cursor > 1 {
+	if len(m.helpMenu.data) == 0 {
+		return
+	}
+	if m.helpMenu.cursor <= 0 {
+		m.helpMenu.cursor = len(m.helpMenu.data) - 1
+	} else {
 		m.helpMenu.cursor--
-		if m.helpMenu.cursor < m.helpMenu.renderIndex {
-			m.helpMenu.renderIndex--
-			if m.helpMenu.data[m.helpMenu.cursor].subTitle != "" {
-				m.helpMenu.renderIndex--
-			}
-		}
-		if m.helpMenu.data[m.helpMenu.cursor].subTitle != "" {
+	}
+	for len(m.helpMenu.data) > 0 && m.helpMenu.data[m.helpMenu.cursor].subTitle != "" {
+		if m.helpMenu.cursor <= 0 {
+			m.helpMenu.cursor = len(m.helpMenu.data) - 1
+		} else {
 			m.helpMenu.cursor--
 		}
-	} else {
-		m.helpMenu.cursor = len(m.helpMenu.data) - 1
-		m.helpMenu.renderIndex = len(m.helpMenu.data) - m.helpMenu.height
+	}
+	if m.helpMenu.cursor < m.helpMenu.renderIndex {
+		m.helpMenu.renderIndex = m.helpMenu.cursor
 	}
 }
 
@@ -163,21 +168,23 @@ func (m *model) helpMenuListDown() {
 	if len(m.helpMenu.data) == 0 {
 		return
 	}
-
-	if m.helpMenu.cursor < len(m.helpMenu.data)-1 {
+	if m.helpMenu.cursor >= len(m.helpMenu.data)-1 {
+		m.helpMenu.cursor = 0
+	} else {
 		m.helpMenu.cursor++
-		if m.helpMenu.cursor > m.helpMenu.renderIndex+m.helpMenu.height-1 {
-			m.helpMenu.renderIndex++
-			if m.helpMenu.data[m.helpMenu.cursor].subTitle != "" {
-				m.helpMenu.renderIndex++
-			}
-		}
-		if m.helpMenu.data[m.helpMenu.cursor].subTitle != "" {
+	}
+	for len(m.helpMenu.data) > 0 && m.helpMenu.data[m.helpMenu.cursor].subTitle != "" {
+		if m.helpMenu.cursor >= len(m.helpMenu.data)-1 {
+			m.helpMenu.cursor = 0
+		} else {
 			m.helpMenu.cursor++
 		}
-	} else {
-		m.helpMenu.cursor = 1
-		m.helpMenu.renderIndex = 0
+	}
+	if m.helpMenu.cursor > m.helpMenu.renderIndex+m.helpMenu.height-1 {
+		m.helpMenu.renderIndex = m.helpMenu.cursor - m.helpMenu.height + 1
+		if m.helpMenu.renderIndex < 0 {
+			m.helpMenu.renderIndex = 0
+		}
 	}
 }
 
@@ -188,10 +195,92 @@ func (m *model) openHelpMenu() {
 		return
 	}
 
+	m.helpMenu.allData = getHelpMenuData()
+	m.helpMenu.filter = ""
+	m.applyHelpMenuFilter()
 	m.helpMenu.open = true
 }
 
 // Quit help menu
 func (m *model) quitHelpMenu() {
 	m.helpMenu.open = false
+	m.lastCursorMovedAt = time.Now()
+}
+
+func (m *model) applyHelpMenuFilter() {
+	filter := strings.ToLower(strings.TrimSpace(m.helpMenu.filter))
+	if filter == "" {
+		m.helpMenu.data = m.helpMenu.allData
+		m.helpMenu.renderIndex = 0
+		m.helpMenu.cursor = 0
+		for m.helpMenu.cursor < len(m.helpMenu.data) && m.helpMenu.data[m.helpMenu.cursor].subTitle != "" {
+			m.helpMenu.cursor++
+		}
+		if m.helpMenu.cursor >= len(m.helpMenu.data) {
+			m.helpMenu.cursor = 0
+		}
+		return
+	}
+
+	filtered := make([]helpMenuModalData, 0, len(m.helpMenu.allData))
+	for _, row := range m.helpMenu.allData {
+		if row.subTitle != "" {
+			filtered = append(filtered, row)
+			continue
+		}
+		text := strings.ToLower(strings.Join([]string{
+			strings.Join(row.hotkey, " "),
+			row.name,
+			row.description,
+		}, " "))
+		if strings.Contains(text, filter) {
+			filtered = append(filtered, row)
+		}
+	}
+	cleaned := make([]helpMenuModalData, 0, len(filtered))
+	for i := range filtered {
+		if filtered[i].subTitle != "" {
+			if i == len(filtered)-1 || filtered[i+1].subTitle != "" {
+				continue
+			}
+		}
+		cleaned = append(cleaned, filtered[i])
+	}
+	if len(cleaned) == 0 {
+		m.helpMenu.data = []helpMenuModalData{{subTitle: "No matches"}}
+		m.helpMenu.cursor = 0
+		m.helpMenu.renderIndex = 0
+		return
+	}
+	m.helpMenu.data = cleaned
+	m.helpMenu.cursor = 0
+	m.helpMenu.renderIndex = 0
+	for m.helpMenu.cursor < len(m.helpMenu.data) && m.helpMenu.data[m.helpMenu.cursor].subTitle != "" {
+		m.helpMenu.cursor++
+	}
+	if m.helpMenu.cursor >= len(m.helpMenu.data) {
+		m.helpMenu.cursor = 0
+	}
+}
+
+func (m *model) appendHelpMenuFilterRune(msg string) {
+	runes := []rune(msg)
+	if len(runes) != 1 {
+		return
+	}
+	r := runes[0]
+	if !unicode.IsPrint(r) {
+		return
+	}
+	m.helpMenu.filter += string(r)
+	m.applyHelpMenuFilter()
+}
+
+func (m *model) deleteHelpMenuFilterRune() {
+	if m.helpMenu.filter == "" {
+		return
+	}
+	runes := []rune(m.helpMenu.filter)
+	m.helpMenu.filter = string(runes[:len(runes)-1])
+	m.applyHelpMenuFilter()
 }

@@ -348,8 +348,8 @@ func (m *model) setHelpMenuSize() {
 		m.helpMenu.height = 30
 	}
 
-	if m.fullWidth > 95 {
-		m.helpMenu.width = 90
+	if m.fullWidth > 105 {
+		m.helpMenu.width = 100
 	}
 }
 
@@ -668,7 +668,8 @@ func (m *model) updateRenderForOverlay(finalRender string) string {
 		helpMenu := m.helpMenuRender()
 		overlayX := m.fullWidth/2 - m.helpMenu.width/2
 		overlayY := m.fullHeight/2 - m.helpMenu.height/2
-		return stringfunction.PlaceOverlay(overlayX, overlayY, helpMenu, finalRender)
+		clearCmd := m.imagePreviewer.ClearKittyImages()
+		return clearCmd + stringfunction.PlaceOverlay(overlayX, overlayY, helpMenu, finalRender)
 	}
 
 	if m.promptModal.IsOpen() {

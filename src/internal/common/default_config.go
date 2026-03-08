@@ -10,3 +10,4 @@ var (
 var Theme ThemeType
 var Config ConfigType
 var Hotkeys HotkeysType
+var HotkeyDisplayGroups []HotkeyDisplayGroup

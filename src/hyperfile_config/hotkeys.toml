@@ -1,88 +1,94 @@
 # =============================================================================
-# Hyperfile hotkeys
+# Hyperfile hotkeys (metadata-driven)
 #
-# Design rules:
-#   • ctrl+key  = file operations (act on files)
-#   • alt+key   = app / UI operations (navigate the app itself)
-#   • arrow / special keys = navigation (no modifier needed)
-#   • ALL bare letters, digits, and filename characters [A-Za-z0-9@_.+=/-]
-#     are reserved for the always-on filter input — every hotkey must carry
-#     a modifier.
+# This file is the source of truth for BOTH:
+# 1) key bindings used by the app
+# 2) help menu content shown via "?"
 #
-# Hard-coded in source (values here are ignored):
-#   enter        → confirm / open item
-#   esc          → cancel / close modal
-#   ?            → open help
-#   :            → open shell command prompt
-#   >            → open hyperfile command prompt
-#   shift+up     → extend selection up
-#   shift+down   → extend selection down
-#   mouse wheel  → scroll
+# Each hotkey entry uses 4 properties in this order:
+#   ["<hotkey>", "<pretty name>", "<description>", "<icon>"]
+#
+# Name limit:
+# - "<pretty name>" should be at most 16 characters.
+# - Longer names are truncated to 16 characters when loaded.
+#
+# Grouping strategy:
+# - [headers] maps section keys to display titles in the help menu.
+# - Context sections (e.g. [ui], [navigation], [file_operations]) are workflow-oriented.
+# - Keep growing context groups by user workflow state:
+#   * when selection is active (multi-select workflows)
+#   * when focus is in a specific panel (sidebar / metadata / process)
+#   * when typing/search mode is active
+#
+# Expansion idea:
+# - Add context-only entries for discoverability even if key is shared.
+# - Keep IDs stable (left side names) because code loads by these IDs.
+#
+# NOTE:
+# Some keys are also treated specially by runtime behavior, but still documented here
+# so help remains complete and consistent.
 # =============================================================================
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Navigation  (arrow and special keys — no modifier needed)
-# ─────────────────────────────────────────────────────────────────────────────
-list_up             = ['up']
-list_down           = ['down']
-page_up             = ['pgup']
-page_down           = ['pgdown']
-parent_directory    = ['left']
-confirm             = ['right']
-next_file_panel     = ['tab']
-previous_file_panel = ['shift+tab']
+[headers]
+ui = "UI"
+navigation = "Navigation"
+file_operations = "File operations"
+selection = "Selection"
+search = "Search"
+typing = "Typing / modals"
 
-# ─────────────────────────────────────────────────────────────────────────────
-# File operations  ctrl+  (act on files in the panel)
-# ─────────────────────────────────────────────────────────────────────────────
-file_panel_item_create = ['ctrl+n']
-file_panel_item_rename = ['ctrl+r']
-copy_items             = ['ctrl+c']
-cut_items              = ['ctrl+x']
-paste_items            = ['ctrl+v']
-delete_items           = ['delete']
-drag_items             = ['ctrl+d']
-extract_file           = ['ctrl+e']
-compress_file          = ['ctrl+a']
-copy_path              = ['ctrl+p']
+[ui]
+quit = ["ctrl+q", "Quit", "Quit typing, modal, or Hyperfile", "󰩈"]
+create_new_file_panel = ["alt+n", "New panel", "Create a new file panel", "󰹹"]
+close_file_panel = ["alt+w", "Close panel", "Close focused file panel", "󰅖"]
+next_file_panel = ["tab", "Next panel", "Focus next file panel", "󰌒"]
+previous_file_panel = ["shift+tab", "Previous panel", "Focus previous file panel", "󰌑"]
+toggle_file_preview_panel = ["alt+f", "Toggle preview", "Show or hide file preview panel", "󰋩"]
+toggle_detail_view = ["alt+d", "Toggle details", "Toggle tree/detail rendering mode", "󰘤"]
+open_sort_options_menu = ["alt+o", "Sort options", "Open sort options menu", "󰒺"]
+toggle_reverse_sort = ["alt+r", "Reverse sort", "Toggle reverse sort order", "󰒻"]
+focus_on_process_bar = ["alt+p", "Focus process", "Move focus to process panel", "󰓦"]
+focus_on_sidebar = ["alt+s", "Focus sidebar", "Move focus to sidebar", "󰙅"]
+focus_on_metadata = ["alt+m", "Focus metadata", "Move focus to metadata panel", "󰋼"]
+toggle_footer = ["alt+t", "Toggle footer", "Show or hide footer panels", "󰘎"]
+open_help_menu = ["?", "Help", "Open dynamic help menu", "󰞋"]
+open_command_line = [":", "Shell prompt", "Open shell command prompt", ""]
+open_spf_prompt = [">", "Hyperfile prompt", "Open Hyperfile command prompt", ""]
 
-# ─────────────────────────────────────────────────────────────────────────────
-# App / UI operations  alt+  (navigate the app itself)
-# ─────────────────────────────────────────────────────────────────────────────
-quit                               = ['ctrl+q']
-create_new_file_panel              = ['alt+n']
-close_file_panel                   = ['alt+w']
-focus_on_process_bar               = ['alt+p']
-focus_on_sidebar                   = ['alt+s']
-focus_on_metadata                  = ['alt+m']
-toggle_file_preview_panel          = ['alt+f']
-toggle_detail_view                 = ['alt+d']
-open_sort_options_menu             = ['alt+o']
-toggle_reverse_sort                = ['alt+r']
-toggle_dot_file                    = ['alt+.']
-open_file_with_editor              = ['alt+e']
-open_current_directory_with_editor = ['alt+E']
-pinned_directory                   = ['alt+b']
-toggle_footer                      = ['alt+t']
-copy_present_working_directory     = ['alt+c']
+[navigation]
+list_up = ["up", "Move up", "Move cursor up", ""]
+list_down = ["down", "Move down", "Move cursor down", ""]
+page_up = ["pgup", "Page up", "Move cursor one page up", "󰐀"]
+page_down = ["pgdown", "Page down", "Move cursor one page down", "󰐁"]
+parent_directory = ["left", "Parent directory", "Go to parent directory", "󰝰"]
+confirm = ["right", "Confirm", "Confirm/open current item", "󰒭"]
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Selection  (visual mode removed — selection works in any mode)
-# ─────────────────────────────────────────────────────────────────────────────
-# shift+up / shift+down will be hard-coded; kept here during source migration
-file_panel_select_mode_items_select_up   = ['shift+up']
-file_panel_select_mode_items_select_down = ['shift+down']
-file_panel_select_all_items              = ['alt+a']
+[file_operations]
+file_panel_item_create = ["ctrl+n", "Create item", "Create file or directory", ""]
+file_panel_item_rename = ["ctrl+r", "Rename item", "Rename selected file or directory", "󰑕"]
+copy_items = ["ctrl+c", "Copy items", "Copy selected items to clipboard", ""]
+cut_items = ["ctrl+x", "Cut items", "Cut selected items to clipboard", ""]
+paste_items = ["ctrl+v", "Paste items", "Paste clipboard items into current panel", ""]
+delete_items = ["delete", "Delete items", "Delete selected items", "󰆴"]
+drag_items = ["ctrl+d", "Drag items", "Drag selected item(s) to external app", "󰆾"]
+extract_file = ["ctrl+e", "Extract archive", "Extract selected compressed file", "󰆼"]
+compress_file = ["ctrl+a", "Compress items", "Compress file/folder to zip", "󰗄"]
+copy_path = ["ctrl+p", "Copy path", "Copy selected file/directory path", "󰅍"]
+open_file_with_editor = ["alt+e", "Edit file", "Open selected file with editor", "󰏫"]
+open_current_directory_with_editor = ["alt+E", "Edit directory", "Open current directory with editor", "󰉋"]
+copy_present_working_directory = ["alt+c", "Copy PWD", "Copy current working directory", "󰉋"]
+pinned_directory = ["alt+b", "Toggle pin", "Pin or unpin directory in sidebar", "󰐃"]
+toggle_dot_file = ["alt+.", "Toggle dotfiles", "Show or hide dotfiles", "󰘓"]
 
+[selection]
+file_panel_select_mode_items_select_up = ["shift+up", "Select up", "Extend selection upward", "󰁝"]
+file_panel_select_mode_items_select_down = ["shift+down", "Select down", "Extend selection downward", "󰁅"]
+file_panel_select_all_items = ["alt+a", "Select all", "Select all items in focused panel", "󰈈"]
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Pending hard-coding — still read from config; will be removed from TOML
-# once source is updated to hard-code these directly
-# ─────────────────────────────────────────────────────────────────────────────
-confirm_typing    = ['enter']
-cancel_typing     = ['esc']
-open_help_menu    = ['?']
-open_command_line = [':']
-open_spf_prompt   = ['>']
-search_bar        = ['/']
-content_search    = ['ctrl+g']
+[search]
+search_bar = ["/", "Search filename", "Open inline filename search", "󰍉"]
+content_search = ["ctrl+g", "Search content", "Search file contents in active tree", "󰍉"]
+
+[typing]
+confirm_typing = ["enter", "Confirm typing", "Confirm active input/modal", "󰌑"]
+cancel_typing = ["esc", "Cancel typing", "Cancel active input/modal", "󰜺"]

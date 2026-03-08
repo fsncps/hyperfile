@@ -328,15 +328,24 @@ func (m *model) focusOnSearchbarKey(msg string) {
 	}
 }
 
-// Check hotkey input in help menu. Possible actions are moving up, down
-// and quiting the menu
+// Check hotkey input in help menu. Possible actions are moving up, down,
+// filtering, and quiting the menu
 func (m *model) helpMenuKey(msg string) {
 	switch {
 	case slices.Contains(common.Hotkeys.ListUp, msg):
 		m.helpMenuListUp()
 	case slices.Contains(common.Hotkeys.ListDown, msg):
 		m.helpMenuListDown()
+	case msg == "backspace":
+		m.deleteHelpMenuFilterRune()
 	case msg == "esc", slices.Contains(common.Hotkeys.Quit, msg):
+		if m.helpMenu.filter != "" {
+			m.helpMenu.filter = ""
+			m.applyHelpMenuFilter()
+			return
+		}
 		m.quitHelpMenu()
+	default:
+		m.appendHelpMenuFilterRune(msg)
 	}
 }

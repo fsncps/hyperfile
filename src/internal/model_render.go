@@ -315,97 +315,150 @@ func (m *model) promptModalRender() string {
 }
 
 func (m *model) helpMenuRender() string {
-	maxKeyLength := 0
+	contentWidth := max(20, m.helpMenu.width-2)
+	cursorColWidth := 2
+	columnGapWidth := 2
+	columnAreaWidth := max(12, contentWidth-cursorColWidth-(2*columnGapWidth))
+	keyColWidth, nameColWidth, descColWidth := m.getHelpMenuColumnWidths(columnAreaWidth)
+	helpMenuContent := m.getHelpMenuContent(contentWidth, cursorColWidth,
+		columnGapWidth, keyColWidth, nameColWidth, descColWidth)
 
-	for _, data := range m.helpMenu.data {
-		totalKeyLen := 0
-		for _, key := range data.hotkey {
-			totalKeyLen += len(key)
-		}
-		saprateLen := len(data.hotkey) - 1*3
-		if data.subTitle == "" && totalKeyLen+saprateLen > maxKeyLength {
-			maxKeyLength = totalKeyLen + saprateLen
-		}
-	}
-
-	valueLength := m.helpMenu.width - maxKeyLength - 2
-	if valueLength < m.helpMenu.width/2 {
-		valueLength = m.helpMenu.width/2 - 2
-	}
-
-	totalTitleCount := 0
-	cursorBeenTitleCount := 0
-
+	selectableCount := 0
+	selectedIdx := 0
 	for i, data := range m.helpMenu.data {
 		if data.subTitle != "" {
-			if i < m.helpMenu.cursor {
-				cursorBeenTitleCount++
-			}
-			totalTitleCount++
+			continue
+		}
+		selectableCount++
+		if i <= m.helpMenu.cursor {
+			selectedIdx = selectableCount
 		}
 	}
+	if selectableCount == 0 {
+		selectedIdx = 0
+	}
 
-	renderHotkeyLength := m.getRenderHotkeyLengthHelpmenuModal()
-	helpMenuContent := m.getHelpMenuContent(renderHotkeyLength, valueLength)
-
-	bottomBorder := common.GenerateFooterBorder(fmt.Sprintf("%s/%s",
-		strconv.Itoa(m.helpMenu.cursor+1-cursorBeenTitleCount),
-		strconv.Itoa(len(m.helpMenu.data)-totalTitleCount)), m.helpMenu.width-2)
+	bottomBorder := common.GenerateFooterBorder(
+		fmt.Sprintf("%d/%d", selectedIdx, selectableCount),
+		m.helpMenu.width-2,
+	)
 
 	return common.HelpMenuModalBorderStyle(m.helpMenu.height, m.helpMenu.width, bottomBorder).Render(helpMenuContent)
 }
 
-func (m *model) getRenderHotkeyLengthHelpmenuModal() int {
-	renderHotkeyLength := 0
-	for i := m.helpMenu.renderIndex; i < m.helpMenu.height+m.helpMenu.renderIndex && i < len(m.helpMenu.data); i++ {
-		hotkey := ""
-
-		if m.helpMenu.data[i].subTitle != "" {
-			continue
-		}
-
-		for i, key := range m.helpMenu.data[i].hotkey {
-			if i != 0 {
-				hotkey += " | "
-			}
-			hotkey += key
-		}
-
-		renderHotkeyLength = max(renderHotkeyLength, len(common.HelpMenuHotkeyStyle.Render(hotkey)))
+func (m *model) getHelpMenuColumnWidths(columnAreaWidth int) (int, int, int) {
+	if columnAreaWidth <= 0 {
+		return len("Hotkey"), len("Name"), len("Description")
 	}
-	return renderHotkeyLength
+
+	const desiredKeyColWidth = 15
+	const desiredNameColWidth = 30
+	const desiredDescColWidth = 50
+
+	keyColWidth := min(desiredKeyColWidth, columnAreaWidth)
+	remainingAfterKey := max(0, columnAreaWidth-keyColWidth)
+	nameColWidth := min(desiredNameColWidth, remainingAfterKey)
+	remainingAfterName := max(0, remainingAfterKey-nameColWidth)
+	descColWidth := min(desiredDescColWidth, remainingAfterName)
+
+	if keyColWidth < len("Hotkey") {
+		keyColWidth = min(len("Hotkey"), columnAreaWidth)
+	}
+	remainingAfterKey = max(0, columnAreaWidth-keyColWidth)
+
+	if nameColWidth < len("Name") {
+		nameColWidth = min(len("Name"), remainingAfterKey)
+	}
+	remainingAfterName = max(0, remainingAfterKey-nameColWidth)
+
+	if descColWidth < len("Description") {
+		descColWidth = min(len("Description"), remainingAfterName)
+	}
+
+	used := keyColWidth + nameColWidth + descColWidth
+	if used < columnAreaWidth {
+		descColWidth += columnAreaWidth - used
+	}
+
+	return keyColWidth, nameColWidth, descColWidth
 }
 
-func (m *model) getHelpMenuContent(renderHotkeyLength int, valueLength int) string {
-	helpMenuContent := ""
+func (m *model) getHelpMenuContent(contentWidth, cursorColWidth, columnGapWidth,
+	keyColWidth, nameColWidth, descColWidth int) string {
+	var b strings.Builder
+
+	titleText := " Help"
+	title := common.HelpMenuTitleStyle.Render(titleText)
+	titleW := ansi.StringWidth(titleText)
+
+	filterPrefix := "🔍 "
+	filterPrefixWidth := ansi.StringWidth(filterPrefix)
+	availableForFilter := max(6, contentWidth-titleW-1)
+	preferredInnerWidth := min(24, max(12, contentWidth/3))
+	filterInnerWidth := min(preferredInnerWidth, max(4, availableForFilter-2))
+	filterTextWidth := max(1, filterInnerWidth-filterPrefixWidth)
+	filterText := truncateAndPad(m.helpMenu.filter, filterTextWidth)
+	filterInner := truncateAndPad(filterPrefix+filterText, filterInnerWidth)
+	filterBox := "[" + filterInner + "]"
+	filterW := ansi.StringWidth(filterBox)
+
+	gap := max(1, contentWidth-titleW-filterW)
+	b.WriteString(title)
+	b.WriteString(strings.Repeat(" ", gap))
+	b.WriteString(common.HelpMenuHotkeyStyle.Render(filterBox))
+	b.WriteString("\n")
+
+	headerPrefix := strings.Repeat(" ", cursorColWidth)
+	headKey := truncateAndPad("Hotkey", keyColWidth)
+	headName := truncateAndPad("Name", nameColWidth)
+	headDesc := truncateAndPad("Description", descColWidth)
+	headGap := strings.Repeat(" ", columnGapWidth)
+	b.WriteString(common.HelpMenuTitleStyle.Render(headerPrefix + headKey + headGap + headName + headGap + headDesc))
+
 	for i := m.helpMenu.renderIndex; i < m.helpMenu.height+m.helpMenu.renderIndex && i < len(m.helpMenu.data); i++ {
-		if i != m.helpMenu.renderIndex {
-			helpMenuContent += "\n"
-		}
+		b.WriteString("\n")
 
 		if m.helpMenu.data[i].subTitle != "" {
-			helpMenuContent += common.HelpMenuTitleStyle.Render(" " + m.helpMenu.data[i].subTitle)
+			b.WriteString(common.HelpMenuTitleStyle.Render(strings.Repeat(" ", cursorColWidth) + m.helpMenu.data[i].subTitle))
 			continue
 		}
 
-		hotkey := ""
-		description := common.TruncateText(m.helpMenu.data[i].description, valueLength, "...")
+		hotkeyRaw := strings.Join(m.helpMenu.data[i].hotkey, " | ")
+		nameRaw := m.helpMenu.data[i].name
+		descRaw := m.helpMenu.data[i].description
 
-		for i, key := range m.helpMenu.data[i].hotkey {
-			if i != 0 {
-				hotkey += " | "
-			}
-			hotkey += key
-		}
+		hotkeyCol := common.HelpMenuHotkeyStyle.Render(truncateAndPad(hotkeyRaw, keyColWidth))
+		nameCol := common.ModalStyle.Render(truncateAndPad(nameRaw, nameColWidth))
+		descCol := common.ModalStyle.Render(truncateAndPad(descRaw, descColWidth))
 
-		cursor := "  "
+		cursor := strings.Repeat(" ", cursorColWidth)
 		if m.helpMenu.cursor == i {
 			cursor = common.FilePanelCursorStyle.Render(icon.Cursor + " ")
 		}
-		helpMenuContent += cursor + common.ModalStyle.Render(fmt.Sprintf("%*s%s", renderHotkeyLength,
-			common.HelpMenuHotkeyStyle.Render(hotkey+" "), common.ModalStyle.Render(description)))
+		b.WriteString(cursor)
+		b.WriteString(hotkeyCol)
+		b.WriteString(headGap)
+		b.WriteString(nameCol)
+		b.WriteString(headGap)
+		b.WriteString(descCol)
 	}
-	return helpMenuContent
+	return b.String()
+}
+
+func truncateAndPad(s string, width int) string {
+	if width <= 0 {
+		return ""
+	}
+	truncated := ansi.Truncate(s, width, "...")
+	return padToWidth(truncated, width)
+}
+
+func padToWidth(s string, width int) string {
+	w := ansi.StringWidth(s)
+	if w >= width {
+		return s
+	}
+	return s + strings.Repeat(" ", width-w)
 }
 
 func (m *model) sortOptionsRender() string {
@@ -655,6 +708,9 @@ func (m *model) filePreviewPanelRenderWithDimensions(previewHeight int, previewW
 	box := common.FilePreviewBox(previewHeight, previewWidth)
 	r := ui.FilePreviewPanelRenderer(previewHeight, previewWidth)
 	clearCmd := m.imagePreviewer.ClearKittyImages()
+	if m.helpMenu.open {
+		return r.Render() + clearCmd
+	}
 
 	itemPath := m.getPreviewItemPath()
 	if itemPath == "" {
@@ -704,7 +760,7 @@ func (m *model) filePreviewPanelRenderWithDimensions(previewHeight int, previewW
 		if previewHeight > 7 {
 			headerRows = 2 // 1 header line + 1 section divider
 		}
-		imageW := previewWidth - 4              // 1-col margin each side inside border
+		imageW := previewWidth - 4               // 1-col margin each side inside border
 		imageH := previewHeight - 2 - headerRows // inner height minus header
 		sideAreaWidth := m.fullWidth - previewWidth + 1
 		return m.renderImagePreview(r, box, itemPath, imageW, imageH, sideAreaWidth, headerRows, clearCmd)

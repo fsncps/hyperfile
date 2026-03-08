@@ -120,6 +120,21 @@ func (c *ConfigType) GetIgnoreMissingFields() bool {
 	return c.IgnoreMissingFields
 }
 
+type HotkeyDisplayEntry struct {
+	ID          string
+	Context     string
+	Key         string
+	Name        string
+	Description string
+	Icon        string
+}
+
+type HotkeyDisplayGroup struct {
+	Context string
+	Title   string
+	Items   []HotkeyDisplayEntry
+}
+
 type HotkeysType struct {
 	Confirm []string `toml:"confirm" comment:"=================================================================================================\nGlobal hotkeys (cannot conflict with other hotkeys)"`
 	Quit    []string `toml:"quit"`

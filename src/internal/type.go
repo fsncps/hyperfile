@@ -121,11 +121,14 @@ type helpMenuModal struct {
 	open        bool
 	renderIndex int
 	cursor      int
+	filter      string
 	data        []helpMenuModalData
+	allData     []helpMenuModalData
 }
 
 type helpMenuModalData struct {
 	hotkey         []string
+	name           string
 	description    string
 	hotkeyWorkType hotkeyType
 	subTitle       string

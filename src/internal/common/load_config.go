@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"strings"
 
 	"github.com/charmbracelet/x/exp/term/ansi"
 	"github.com/fsncps/hyperfile/src/config/icon"
@@ -94,40 +95,119 @@ func ValidateConfig(c *ConfigType) error {
 	return nil
 }
 
-// Load keybinds from the hotkeys file. Compares the content
-// with the default values and modify the hotkeys if the FixHotkeys flag is on.
+// Load keybinds from the hotkeys file. Supports both legacy flat hotkeys TOML
+// and grouped metadata hotkeys TOML.
 func LoadHotkeysFile() {
-	// Auto-fix missing fields to keep hotkeys in sync with new features
-	err := utils.LoadTomlFile(variable.HotkeysFile, HotkeysTomlString, &Hotkeys, true)
-
+	loaded, err := loadHotkeysFromGroupedOrFlatTOML(variable.HotkeysFile, HotkeysTomlString)
 	if err != nil {
-		userMsg := fmt.Sprintf("%s%s", LipglossError, err.Error())
+		utils.PrintfAndExit("%s%s\n", LipglossError, err)
+	}
+	Hotkeys = loaded
+	validateHotkeysOrExit(Hotkeys)
+	LoadHotkeyDisplayGroups()
+}
 
-		toExit := true
-		var loadError *utils.TomlLoadError
-		if errors.As(err, &loadError) {
-			toExit = loadError.IsFatal()
-		}
-		if toExit {
-			utils.PrintfAndExit("%s\n", userMsg)
-		} else {
-			fmt.Println(userMsg)
-		}
+func loadHotkeysFromGroupedOrFlatTOML(hotkeysPath, defaultTOML string) (HotkeysType, error) {
+	base, err := parseHotkeysFromTOML([]byte(defaultTOML), HotkeysType{})
+	if err != nil {
+		return HotkeysType{}, err
 	}
 
-	// Validate hotkey values
-	val := reflect.ValueOf(Hotkeys)
+	data, readErr := os.ReadFile(hotkeysPath)
+	if readErr != nil {
+		return base, nil
+	}
+
+	overlaid, parseErr := parseHotkeysFromTOML(data, base)
+	if parseErr != nil {
+		return HotkeysType{}, parseErr
+	}
+	return overlaid, nil
+}
+
+func parseHotkeysFromTOML(data []byte, seed HotkeysType) (HotkeysType, error) {
+	result := seed
+	var raw map[string]interface{}
+	if err := toml.Unmarshal(data, &raw); err != nil {
+		return HotkeysType{}, err
+	}
+
+	target := reflect.ValueOf(&result).Elem()
+	targetType := target.Type()
+	for i := range target.NumField() {
+		field := targetType.Field(i)
+		tag := field.Tag.Get("toml")
+		if tag == "" {
+			continue
+		}
+		tomlKey := strings.Split(tag, ",")[0]
+		value, ok := findHotkeyValue(raw, tomlKey)
+		if !ok {
+			continue
+		}
+		keyList := extractPrimaryHotkeyList(value)
+		if len(keyList) == 0 || keyList[0] == "" {
+			continue
+		}
+		target.Field(i).Set(reflect.ValueOf(keyList))
+	}
+
+	return result, nil
+}
+
+func findHotkeyValue(raw map[string]interface{}, key string) (interface{}, bool) {
+	if val, ok := raw[key]; ok {
+		return val, true
+	}
+	for section, sectionValue := range raw {
+		if section == "headers" {
+			continue
+		}
+		table, ok := sectionValue.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if val, exists := table[key]; exists {
+			return val, true
+		}
+	}
+	return nil, false
+}
+
+func extractPrimaryHotkeyList(value interface{}) []string {
+	asIface, ok := value.([]interface{})
+	if ok {
+		if len(asIface) == 0 {
+			return nil
+		}
+		primary := strings.TrimSpace(fmt.Sprintf("%v", asIface[0]))
+		if primary == "" {
+			return nil
+		}
+		return []string{primary}
+	}
+	asStrings, ok := value.([]string)
+	if ok {
+		if len(asStrings) == 0 {
+			return nil
+		}
+		primary := strings.TrimSpace(asStrings[0])
+		if primary == "" {
+			return nil
+		}
+		return []string{primary}
+	}
+	return nil
+}
+
+func validateHotkeysOrExit(hotkeys HotkeysType) {
+	val := reflect.ValueOf(hotkeys)
 	for i := range val.NumField() {
 		field := val.Type().Field(i)
 		value := val.Field(i)
-
-		// Although this is redundant as Hotkey is always a slice
-		// This adds a layer against accidental struct modifications
-		// Makes sure its always be a string slice. It's somewhat like a unit test
 		if value.Kind() != reflect.Slice || value.Type().Elem().Kind() != reflect.String {
 			utils.PrintlnAndExit(LoadHotkeysError(field.Name))
 		}
-
 		hotkeysList, ok := value.Interface().([]string)
 		if !ok || len(hotkeysList) == 0 || hotkeysList[0] == "" {
 			utils.PrintlnAndExit(LoadHotkeysError(field.Name))
@@ -316,7 +396,18 @@ func PopulateConfigFromFile(configFilePath string) error {
 }
 
 func PopulateHotkeyFromFile(hotkeyFilePath string) error {
-	return populateFromFile(hotkeyFilePath, &Hotkeys)
+	data, err := os.ReadFile(hotkeyFilePath)
+	if err != nil {
+		return err
+	}
+	hotkeys, err := parseHotkeysFromTOML(data, HotkeysType{})
+	if err != nil {
+		return err
+	}
+	Hotkeys = hotkeys
+	validateHotkeysOrExit(Hotkeys)
+	HotkeyDisplayGroups, _ = ParseHotkeyDisplayGroups(data, Hotkeys)
+	return nil
 }
 
 func PopulateThemeFromFile(themeFilePath string) error {
