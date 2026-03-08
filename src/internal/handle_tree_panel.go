@@ -116,12 +116,18 @@ func (m *model) handleTreePanelKey(msg string, idx int) tea.Cmd {
 	case msg == "ctrl+up":
 		m.focusOnProcessBar()
 
-	// ---- Panel visibility toggles ----
-	case msg == "alt+1":
-		m.toggleTree1Panel()
+	// ---- Panel view modes ----
+	case slices.Contains(common.Hotkeys.ViewMode1, msg):
+		m.setViewMode(viewModeBothWithPreview)
 
-	case msg == "alt+2":
-		m.toggleTree2Panel()
+	case slices.Contains(common.Hotkeys.ViewMode2, msg):
+		m.setViewMode(viewModeBothNoPreview)
+
+	case slices.Contains(common.Hotkeys.ViewMode3, msg):
+		m.setViewMode(viewModeMainWithPreview)
+
+	case slices.Contains(common.Hotkeys.ViewMode4, msg):
+		m.setViewMode(viewModeMainOnly)
 
 	case slices.Contains(common.Hotkeys.ToggleFilePreviewPanel, msg):
 		m.toggleFilePreviewPanel()

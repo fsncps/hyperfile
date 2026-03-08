@@ -659,7 +659,10 @@ func (m *model) View() string {
 
 	finalRender = m.updateRenderForOverlay(finalRender)
 
-	return finalRender
+	// Always clear kitty images at the start of each render output.
+	// Images will be re-rendered fresh by filePreviewPanelRender if needed.
+	// This ensures images are cleared reliably on any UI change.
+	return m.imagePreviewer.ClearKittyImages() + finalRender
 }
 
 func (m *model) updateRenderForOverlay(finalRender string) string {
@@ -668,8 +671,7 @@ func (m *model) updateRenderForOverlay(finalRender string) string {
 		helpMenu := m.helpMenuRender()
 		overlayX := m.fullWidth/2 - m.helpMenu.width/2
 		overlayY := m.fullHeight/2 - m.helpMenu.height/2
-		clearCmd := m.imagePreviewer.ClearKittyImages()
-		return clearCmd + stringfunction.PlaceOverlay(overlayX, overlayY, helpMenu, finalRender)
+		return stringfunction.PlaceOverlay(overlayX, overlayY, helpMenu, finalRender)
 	}
 
 	if m.promptModal.IsOpen() {

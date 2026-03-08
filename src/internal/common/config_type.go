@@ -154,6 +154,10 @@ type HotkeysType struct {
 	TreeDepthDecrease      []string `toml:"tree_depth_decrease"`
 	OpenSortOptionsMenu    []string `toml:"open_sort_options_menu"`
 	ToggleReverseSort      []string `toml:"toggle_reverse_sort"`
+	ViewMode1              []string `toml:"view_mode_1"`
+	ViewMode2              []string `toml:"view_mode_2"`
+	ViewMode3              []string `toml:"view_mode_3"`
+	ViewMode4              []string `toml:"view_mode_4"`
 
 	FocusOnProcessBar []string `toml:"focus_on_process_bar" comment:"change focus"`
 	FocusOnSidebar    []string `toml:"focus_on_sidebar"`

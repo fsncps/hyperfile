@@ -79,25 +79,41 @@ func (m *model) toggleFilePreviewPanel() {
 	m.recalcPanelWidths()
 }
 
-// toggleTree1Panel hides or shows the left tree panel (alt+1).
-func (m *model) toggleTree1Panel() {
-	m.treePanels[0].open = !m.treePanels[0].open
-	if !m.treePanels[0].open && m.activeFileArea == tree1PanelActive {
-		if m.treePanels[1].open {
-			m.setTree2PanelActive()
-		}
-	}
-	m.recalcPanelWidths()
-}
+// setViewMode configures panel visibility for one of the four fixed layouts:
+// 1: both tree panels + preview
+// 2: both tree panels, no preview
+// 3: main (left) tree panel + preview
+// 4: main (left) tree panel only
+func (m *model) setViewMode(mode viewModeType) {
+	m.viewMode = mode
 
-// toggleTree2Panel hides or shows the right tree panel (alt+2).
-func (m *model) toggleTree2Panel() {
-	m.treePanels[1].open = !m.treePanels[1].open
-	if !m.treePanels[1].open && m.activeFileArea == tree2PanelActive {
-		if m.treePanels[0].open {
-			m.setTree1PanelActive()
-		}
+	switch mode {
+	case viewModeBothWithPreview:
+		m.treePanels[0].open = true
+		m.treePanels[1].open = true
+		m.fileModel.filePreview.open = true
+	case viewModeBothNoPreview:
+		m.treePanels[0].open = true
+		m.treePanels[1].open = true
+		m.fileModel.filePreview.open = false
+	case viewModeMainWithPreview:
+		m.treePanels[0].open = true
+		m.treePanels[1].open = false
+		m.fileModel.filePreview.open = true
+	case viewModeMainOnly:
+		m.treePanels[0].open = true
+		m.treePanels[1].open = false
+		m.fileModel.filePreview.open = false
 	}
+
+	// Ensure focus stays on a visible panel
+	if !m.treePanels[0].open && m.activeFileArea == tree1PanelActive {
+		m.setTree2PanelActive()
+	}
+	if !m.treePanels[1].open && m.activeFileArea == tree2PanelActive {
+		m.setTree1PanelActive()
+	}
+
 	m.recalcPanelWidths()
 }
 

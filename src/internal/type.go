@@ -64,6 +64,16 @@ const (
 	quitDone
 )
 
+// viewModeType represents fixed panel layout modes
+type viewModeType int
+
+const (
+	viewModeBothWithPreview viewModeType = iota + 1 // alt+1: both tree panels + preview
+	viewModeBothNoPreview                           // alt+2: both tree panels, no preview
+	viewModeMainWithPreview                         // alt+3: main tree panel + preview
+	viewModeMainOnly                                // alt+4: main tree panel only
+)
+
 // Main model
 // TODO : We could consider using *model as tea.Model, instead of model.
 // for reducing re-allocations. The struct is 20K bytes. But this could lead to
@@ -112,6 +122,9 @@ type model struct {
 	footerHeight int
 	fullWidth    int
 	fullHeight   int
+
+	// Panel layout view mode
+	viewMode viewModeType
 }
 
 // Modal

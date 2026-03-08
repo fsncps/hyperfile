@@ -35,6 +35,7 @@ func defaultModelConfig(toggleDotFile bool, toggleFooter bool, firstUse bool, fi
 		sidebarModel:        sidebar.New(),
 		fileMetaData:        metadata.New(),
 		treePanels:          [2]treePanelModel{tp0, tp1},
+		viewMode:            initialViewMode(common.Config.DefaultOpenFilePreview),
 		fileModel: fileModel{
 			filePanels: panels,
 			filePreview: filePreviewPanel{
@@ -57,6 +58,14 @@ func defaultModelConfig(toggleDotFile bool, toggleFooter bool, firstUse bool, fi
 		toggleFooter:   toggleFooter,
 		firstUse:       firstUse,
 	}
+}
+
+// initialViewMode returns the default view mode based on preview preference
+func initialViewMode(previewOpen bool) viewModeType {
+	if previewOpen {
+		return viewModeBothWithPreview
+	}
+	return viewModeBothNoPreview
 }
 
 // Return help menu for Hotkeys
