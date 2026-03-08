@@ -23,18 +23,14 @@ import (
 // if the FixConfigFile flag is on
 // TODO : Fix the code duplication with LoadHotkeysFile().
 func LoadConfigFile() {
-	err := utils.LoadTomlFile(variable.ConfigFile, ConfigTomlString, &Config, variable.FixConfigFile)
+	// Auto-fix missing fields to keep config in sync with new features
+	err := utils.LoadTomlFile(variable.ConfigFile, ConfigTomlString, &Config, true)
 	if err != nil {
 		userMsg := fmt.Sprintf("%s%s", LipglossError, err.Error())
 
 		toExit := true
 		var loadError *utils.TomlLoadError
 		if errors.As(err, &loadError) && loadError != nil {
-			if loadError.MissingFields() && !variable.FixConfigFile {
-				// Had missing fields and we did not fix
-				userMsg += "\nTo add missing fields to configuration file automatically run superfile " +
-					"with the --fix-config-file flag `spf --fix-config-file`"
-			}
 			toExit = loadError.IsFatal()
 		}
 		if toExit {
@@ -101,7 +97,8 @@ func ValidateConfig(c *ConfigType) error {
 // Load keybinds from the hotkeys file. Compares the content
 // with the default values and modify the hotkeys if the FixHotkeys flag is on.
 func LoadHotkeysFile() {
-	err := utils.LoadTomlFile(variable.HotkeysFile, HotkeysTomlString, &Hotkeys, variable.FixHotkeys)
+	// Auto-fix missing fields to keep hotkeys in sync with new features
+	err := utils.LoadTomlFile(variable.HotkeysFile, HotkeysTomlString, &Hotkeys, true)
 
 	if err != nil {
 		userMsg := fmt.Sprintf("%s%s", LipglossError, err.Error())
@@ -109,11 +106,6 @@ func LoadHotkeysFile() {
 		toExit := true
 		var loadError *utils.TomlLoadError
 		if errors.As(err, &loadError) {
-			if loadError.MissingFields() && !variable.FixHotkeys {
-				// Had missing fields and we did not fix
-				userMsg += "\nTo add missing fields to hotkeys file automatically run superfile " +
-					"with the --fix-hotkeys flag `spf --fix-hotkeys`"
-			}
 			toExit = loadError.IsFatal()
 		}
 		if toExit {
@@ -246,29 +238,30 @@ func WriteThemeFiles(content embed.FS) error {
 			continue
 		}
 		// This will not break in windows. This is a relative path for Embed FS. It uses "/" only
-		src, err := content.ReadFile(variable.EmbedThemeDir + "/" + file.Name())
+		defaultContent, err := content.ReadFile(variable.EmbedThemeDir + "/" + file.Name())
 		if err != nil {
 			slog.Error("Error reading theme file from embed", "error", err)
 			return err
 		}
 
-		curThemeFile, err := os.Create(filepath.Join(variable.ThemeFolder, file.Name()))
+		themePath := filepath.Join(variable.ThemeFolder, file.Name())
+
+		// Merge with existing file instead of overwriting
+		mergedContent, err := utils.MergeTomlContent(defaultContent, themePath)
 		if err != nil {
-			slog.Error("Error creating theme file from embed", "error", err)
-			return err
+			slog.Error("Error merging theme file", "file", file.Name(), "error", err)
+			// Fall back to default content on merge error
+			mergedContent = defaultContent
 		}
-		defer curThemeFile.Close()
-		_, err = curThemeFile.Write(src)
-		if err != nil {
-			slog.Error("Error writing theme file from embed", "error", err)
+
+		if err = os.WriteFile(themePath, mergedContent, 0644); err != nil {
+			slog.Error("Error writing theme file", "error", err)
 			return err
 		}
 	}
 	return nil
 }
 
-// Used only in unit tests
-// Populate config variables based on given file
 func PopulateGlobalConfigs() error {
 	_, filename, _, ok := runtime.Caller(0)
 	if !ok {

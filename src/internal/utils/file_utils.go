@@ -216,3 +216,58 @@ func DirSize(path string) int64 {
 	}
 	return size
 }
+
+// MergeTomlContent merges default TOML content with existing file content.
+// User values are preserved, new fields from default are added.
+// Returns the merged TOML content as bytes.
+func MergeTomlContent(defaultContent []byte, existingPath string) ([]byte, error) {
+	// Parse default into a map
+	var defaultMap map[string]interface{}
+	if err := toml.Unmarshal(defaultContent, &defaultMap); err != nil {
+		return nil, fmt.Errorf("error parsing default TOML: %w", err)
+	}
+
+	// Check if existing file exists
+	existingData, err := os.ReadFile(existingPath)
+	if err != nil {
+		// File doesn't exist, return default content
+		return defaultContent, nil
+	}
+
+	// Parse existing into a map
+	var existingMap map[string]interface{}
+	if err := toml.Unmarshal(existingData, &existingMap); err != nil {
+		// Can't parse existing, return default (backup handled by caller if needed)
+		slog.Warn("Could not parse existing TOML file, using defaults", "path", existingPath, "error", err)
+		return defaultContent, nil
+	}
+
+	// Merge: add missing fields from default to existing
+	mergeMaps(defaultMap, existingMap)
+
+	// Marshal merged result
+	merged, err := toml.Marshal(existingMap)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling merged TOML: %w", err)
+	}
+
+	return merged, nil
+}
+
+// mergeMaps recursively adds missing keys from src to dst
+func mergeMaps(src, dst map[string]interface{}) {
+	for key, srcVal := range src {
+		if _, exists := dst[key]; !exists {
+			// Key doesn't exist in dst, add it
+			dst[key] = srcVal
+		} else {
+			// Key exists, check if both are maps and recurse
+			srcMap, srcOk := srcVal.(map[string]interface{})
+			dstMap, dstOk := dst[key].(map[string]interface{})
+			if srcOk && dstOk {
+				mergeMaps(srcMap, dstMap)
+			}
+			// Otherwise keep dst's value (user override)
+		}
+	}
+}
