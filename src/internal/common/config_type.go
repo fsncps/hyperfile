@@ -150,6 +150,8 @@ type HotkeysType struct {
 	PreviousFilePanel      []string `toml:"previous_file_panel"`
 	ToggleFilePreviewPanel []string `toml:"toggle_file_preview_panel"`
 	ToggleDetailView       []string `toml:"toggle_detail_view"`
+	TreeDepthIncrease      []string `toml:"tree_depth_increase"`
+	TreeDepthDecrease      []string `toml:"tree_depth_decrease"`
 	OpenSortOptionsMenu    []string `toml:"open_sort_options_menu"`
 	ToggleReverseSort      []string `toml:"toggle_reverse_sort"`
 

@@ -91,11 +91,11 @@ func (m *model) handleTreePanelKey(msg string, idx int) tea.Cmd {
 		tree.CollapseNode()
 		m.parentDirectory()
 
-	case msg == "alt+=", msg == "alt++":
+	case slices.Contains(common.Hotkeys.TreeDepthIncrease, msg):
 		tree.ChangeDepth(+1)
 		m.syncTreeHiddenState()
 
-	case msg == "alt+-":
+	case slices.Contains(common.Hotkeys.TreeDepthDecrease, msg):
 		tree.ChangeDepth(-1)
 		m.syncTreeHiddenState()
 
