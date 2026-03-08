@@ -89,29 +89,29 @@ func (m *model) setViewMode(mode viewModeType) {
 
 	switch mode {
 	case viewModeBothWithPreview:
-		m.treePanels[0].open = true
-		m.treePanels[1].open = true
+		m.primaryPanel.open = true
+		m.secondaryPanel.open = true
 		m.fileModel.filePreview.open = true
 	case viewModeBothNoPreview:
-		m.treePanels[0].open = true
-		m.treePanels[1].open = true
+		m.primaryPanel.open = true
+		m.secondaryPanel.open = true
 		m.fileModel.filePreview.open = false
 	case viewModeMainWithPreview:
-		m.treePanels[0].open = true
-		m.treePanels[1].open = false
+		m.primaryPanel.open = true
+		m.secondaryPanel.open = false
 		m.fileModel.filePreview.open = true
 	case viewModeMainOnly:
-		m.treePanels[0].open = true
-		m.treePanels[1].open = false
+		m.primaryPanel.open = true
+		m.secondaryPanel.open = false
 		m.fileModel.filePreview.open = false
 	}
 
 	// Ensure focus stays on a visible panel
-	if !m.treePanels[0].open && m.activeFileArea == tree1PanelActive {
-		m.setTree2PanelActive()
+	if !m.primaryPanel.open && m.activeFileArea == primaryPanelActive {
+		m.setSecondaryPanelActive()
 	}
-	if !m.treePanels[1].open && m.activeFileArea == tree2PanelActive {
-		m.setTree1PanelActive()
+	if !m.secondaryPanel.open && m.activeFileArea == secondaryPanelActive {
+		m.setPrimaryPanelActive()
 	}
 
 	m.recalcPanelWidths()
@@ -121,13 +121,12 @@ func (m *model) setViewMode(mode viewModeType) {
 // When entering detail mode the entries are loaded from the opposite panel's
 // currently selected directory (or its root if the cursor is on a file).
 func (m *model) toggleDetailView(idx int) {
-	tree := &m.treePanels[idx]
+	tree := m.treePanelByIndex(idx)
 	if tree.mode == treePanelModeDetail {
 		tree.mode = treePanelModeTree
 		return
 	}
-	otherIdx := 1 - idx
-	source := &m.treePanels[otherIdx]
+	source := m.treePanelByIndex(1 - idx)
 	root := source.root
 	if node := source.GetSelectedNode(); node != nil && node.isDir {
 		root = node.path
@@ -143,23 +142,23 @@ func (m *model) toggleDetailView(idx int) {
 func (m *model) focusNextPanel() {
 	if m.focusPanel == sidebarFocus {
 		m.focusPanel = nonePanelFocus
-		if m.treePanels[0].open {
-			m.setTree1PanelActive()
+		if m.primaryPanel.open {
+			m.setPrimaryPanelActive()
 		} else {
-			m.setTree2PanelActive()
+			m.setSecondaryPanelActive()
 		}
 		return
 	}
-	if m.focusPanel == nonePanelFocus && m.activeFileArea == tree1PanelActive && m.treePanels[1].open {
-		m.setTree2PanelActive()
+	if m.focusPanel == nonePanelFocus && m.activeFileArea == primaryPanelActive && m.secondaryPanel.open {
+		m.setSecondaryPanelActive()
 	}
 }
 
 // focusPreviousPanel moves keyboard focus one panel to the left.
 func (m *model) focusPreviousPanel() {
 	if m.focusPanel == nonePanelFocus {
-		if m.activeFileArea == tree2PanelActive && m.treePanels[0].open {
-			m.setTree1PanelActive()
+		if m.activeFileArea == secondaryPanelActive && m.primaryPanel.open {
+			m.setPrimaryPanelActive()
 		} else {
 			m.focusOnSideBar()
 		}

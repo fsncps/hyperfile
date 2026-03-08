@@ -11,7 +11,7 @@ import (
 
 func TestHandleTreePanelKey_ShiftDown_SelectsRange(t *testing.T) {
 	m := defaultTestModel(populatedTempDir(t))
-	tree := &m.treePanels[0]
+	tree := &m.primaryPanel
 	require.Greater(t, len(tree.nodes), 2)
 
 	_, _ = TeaUpdate(m, keyMsg("shift+down"))
@@ -21,7 +21,7 @@ func TestHandleTreePanelKey_ShiftDown_SelectsRange(t *testing.T) {
 
 func TestHandleTreePanelKey_PlainDown_ClearsSelection(t *testing.T) {
 	m := defaultTestModel(populatedTempDir(t))
-	tree := &m.treePanels[0]
+	tree := &m.primaryPanel
 	require.Greater(t, len(tree.nodes), 2)
 
 	_, _ = TeaUpdate(m, keyMsg("shift+down"))
@@ -43,7 +43,7 @@ func populatedTempDir(t *testing.T) string {
 
 func TestTreePanelSelection_ShiftDown_SetsAnchorAndRange(t *testing.T) {
 	m := defaultTestModel(populatedTempDir(t))
-	tree := &m.treePanels[0]
+	tree := &m.primaryPanel
 	require.Greater(t, len(tree.nodes), 2, "need at least 3 nodes")
 
 	tree.ShiftListDown(10)
@@ -56,7 +56,7 @@ func TestTreePanelSelection_ShiftDown_SetsAnchorAndRange(t *testing.T) {
 
 func TestTreePanelSelection_PlainDown_ClearsSelection(t *testing.T) {
 	m := defaultTestModel(populatedTempDir(t))
-	tree := &m.treePanels[0]
+	tree := &m.primaryPanel
 	require.Greater(t, len(tree.nodes), 2)
 
 	tree.ShiftListDown(10) // select something
@@ -67,7 +67,7 @@ func TestTreePanelSelection_PlainDown_ClearsSelection(t *testing.T) {
 
 func TestTreePanelSelection_ShiftUp_ShrinksRange(t *testing.T) {
 	m := defaultTestModel(populatedTempDir(t))
-	tree := &m.treePanels[0]
+	tree := &m.primaryPanel
 	require.Greater(t, len(tree.nodes), 2)
 
 	tree.ShiftListDown(10) // cursor=1, anchor=0, selected=[0,1]
@@ -79,7 +79,7 @@ func TestTreePanelSelection_ShiftUp_ShrinksRange(t *testing.T) {
 
 func TestTreePanelSelection_ToggleSelected(t *testing.T) {
 	m := defaultTestModel(populatedTempDir(t))
-	tree := &m.treePanels[0]
+	tree := &m.primaryPanel
 	require.Greater(t, len(tree.nodes), 0)
 
 	path := tree.nodes[0].path
@@ -92,7 +92,7 @@ func TestTreePanelSelection_ToggleSelected(t *testing.T) {
 func TestTreePanelSelection_ClearedOnRootChange(t *testing.T) {
 	dir := populatedTempDir(t)
 	m := defaultTestModel(dir)
-	tree := &m.treePanels[0]
+	tree := &m.primaryPanel
 	tree.ShiftListDown(10)
 	require.True(t, tree.HasSelection())
 

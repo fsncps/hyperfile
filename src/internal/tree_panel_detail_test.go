@@ -75,8 +75,8 @@ func TestToggleDetailView_SwitchesToDetailMode(t *testing.T) {
 	require.NoError(t, os.WriteFile(filepath.Join(subdir, "file.txt"), []byte("x"), 0644))
 	m := defaultTestModel(dir)
 	m.toggleDetailView(1)
-	assert.Equal(t, treePanelModeDetail, m.treePanels[1].mode)
-	assert.NotEmpty(t, m.treePanels[1].detailEntries)
+	assert.Equal(t, treePanelModeDetail, m.secondaryPanel.mode)
+	assert.NotEmpty(t, m.secondaryPanel.detailEntries)
 }
 
 func TestToggleDetailView_TogglesBackToTree(t *testing.T) {
@@ -84,7 +84,7 @@ func TestToggleDetailView_TogglesBackToTree(t *testing.T) {
 	m := defaultTestModel(dir)
 	m.toggleDetailView(1)
 	m.toggleDetailView(1)
-	assert.Equal(t, treePanelModeTree, m.treePanels[1].mode)
+	assert.Equal(t, treePanelModeTree, m.secondaryPanel.mode)
 }
 
 func TestDetailMode_NavigationUsesEntryCount(t *testing.T) {
@@ -97,7 +97,17 @@ func TestDetailMode_NavigationUsesEntryCount(t *testing.T) {
 		require.NoError(t, os.WriteFile(filepath.Join(subdir, name), []byte("x"), 0644))
 	}
 	m := defaultTestModel(dir)
-	tree := &m.treePanels[1]
+	// Set primary panel to show subdir so detail view uses it
+	m.primaryPanel.maxDepth = 1
+	m.primaryPanel.nodes = buildTreeNodesWithRoot(dir, 1, m.primaryPanel.collapsed, m.primaryPanel.expanded, m.primaryPanel.showHidden)
+	// Find and select subdir in primary panel
+	for i, n := range m.primaryPanel.nodes {
+		if n.path == subdir {
+			m.primaryPanel.cursor = i
+			break
+		}
+	}
+	tree := &m.secondaryPanel
 	m.toggleDetailView(1)
 	require.Greater(t, tree.EntryCount(), 1)
 	initialCursor := tree.cursor
@@ -109,7 +119,7 @@ func TestDetailMode_ShiftSelectIsNoop(t *testing.T) {
 	dir := populatedTempDir(t)
 	m := defaultTestModel(dir)
 	m.toggleDetailView(1)
-	tree := &m.treePanels[1]
+	tree := &m.secondaryPanel
 	tree.ShiftListDown(20)
 	assert.False(t, tree.HasSelection(), "shift-select should be disabled in detail mode")
 }
@@ -125,14 +135,29 @@ func TestConfirm_UpdatesDetailPanelWhenOtherIsInDetailMode(t *testing.T) {
 	require.NoError(t, os.WriteFile(filepath.Join(sub2, "b.txt"), []byte("x"), 0644))
 
 	m := defaultTestModel(dir)
-	// tree1 cursor starts at 0 (sub1). Toggle detail on tree2.
+	// Set primary panel to show subdirs so detail view can use them
+	m.primaryPanel.maxDepth = 1
+	m.primaryPanel.nodes = buildTreeNodesWithRoot(dir, 1, m.primaryPanel.collapsed, m.primaryPanel.expanded, m.primaryPanel.showHidden)
+	// Find and select sub1 in primary panel
+	for i, n := range m.primaryPanel.nodes {
+		if n.path == sub1 {
+			m.primaryPanel.cursor = i
+			break
+		}
+	}
+	// tree1 cursor starts at sub1. Toggle detail on tree2.
 	m.toggleDetailView(1)
-	require.Equal(t, sub1, m.treePanels[1].detailRoot, "detail root should be sub1 initially")
+	require.Equal(t, sub1, m.secondaryPanel.detailRoot, "detail root should be sub1 initially")
 
-	// Move tree1 cursor to sub2 (index 2; index 1 is sub1/a.txt) and send Confirm (right arrow).
-	m.treePanels[0].cursor = 2
+	// Move tree1 cursor to sub2 and send Confirm (right arrow).
+	for i, n := range m.primaryPanel.nodes {
+		if n.path == sub2 {
+			m.primaryPanel.cursor = i
+			break
+		}
+	}
 	_, _ = TeaUpdate(m, keyMsg("right"))
 
-	assert.Equal(t, sub2, m.treePanels[1].detailRoot,
+	assert.Equal(t, sub2, m.secondaryPanel.detailRoot,
 		"detail root should update to sub2 after confirming on tree1")
 }

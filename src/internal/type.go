@@ -81,13 +81,15 @@ const (
 // new model in each tea update.
 type model struct {
 	// Main Panels
-	fileModel       fileModel
-	sidebarModel    sidebar.Model
-	processBarModel processbar.Model
-	treePanels      [2]treePanelModel // [0]=left tree, [1]=right tree
-	focusPanel      focusPanelType
-	activeFileArea  fileAreaFocus // which file-area panel has focus (tree1=0, tree2=1)
-	copyItems       copyItems
+	fileModel        fileModel
+	sidebarModel     sidebar.Model
+	processBarModel  processbar.Model
+	primaryPanel     treePanelModel     // always a file tree
+	secondaryPanel   treePanelModel     // context-sensitive panel
+	secondaryMode    secondaryPanelMode // current mode of secondary panel
+	focusPanel       focusPanelType
+	activeFileArea   fileAreaFocus // which file-area panel has focus
+	copyItems        copyItems
 
 	// Modals
 	notifyModel notify.Model

@@ -133,18 +133,19 @@ func (m *model) handleMouseMsg(msg tea.MouseMsg) tea.Cmd {
 // handleMouseLeftPress switches focus to whichever tree panel was clicked.
 func (m *model) handleMouseLeftPress(x, y int) tea.Cmd {
 	for idx := range 2 {
-		if !m.treePanels[idx].open {
+		tree := m.treePanelByIndex(idx)
+		if !tree.open {
 			continue
 		}
 		start := m.treePanelStartX(idx)
-		end := start + m.treePanels[idx].width + 2
+		end := start + tree.width + 2
 		if x < start+1 || x >= end {
 			continue
 		}
 		if idx == 0 {
-			m.setTree1PanelActive()
+			m.setPrimaryPanelActive()
 		} else {
-			m.setTree2PanelActive()
+			m.setSecondaryPanelActive()
 		}
 		return nil
 	}
@@ -155,15 +156,15 @@ func (m *model) handleMouseLeftPress(x, y int) tea.Cmd {
 func (m *model) handleMouseRightPress(x, y int) tea.Cmd {
 	const headerRows = 3
 	for idx := range 2 {
-		if !m.treePanels[idx].open {
+		tree := m.treePanelByIndex(idx)
+		if !tree.open {
 			continue
 		}
 		start := m.treePanelStartX(idx)
-		end := start + m.treePanels[idx].width + 2
+		end := start + tree.width + 2
 		if x < start+1 || x >= end {
 			continue
 		}
-		tree := &m.treePanels[idx]
 		if len(tree.nodes) == 0 {
 			return nil
 		}
@@ -172,9 +173,9 @@ func (m *model) handleMouseRightPress(x, y int) tea.Cmd {
 			return nil
 		}
 		if idx == 0 {
-			m.setTree1PanelActive()
+			m.setPrimaryPanelActive()
 		} else {
-			m.setTree2PanelActive()
+			m.setSecondaryPanelActive()
 		}
 		return m.dragPaths([]string{tree.nodes[clickedIdx].path})
 	}
@@ -263,17 +264,17 @@ func (m *model) recalcPanelWidths() {
 	treesTotal := remaining - previewOuter
 	var tree1Outer, tree2Outer int
 	switch {
-	case m.treePanels[0].open && m.treePanels[1].open:
+	case m.primaryPanel.open && m.secondaryPanel.open:
 		tree1Outer = max(22, treesTotal/2)
 		tree2Outer = max(22, treesTotal-tree1Outer)
-	case m.treePanels[0].open:
+	case m.primaryPanel.open:
 		tree1Outer = max(22, treesTotal)
-	case m.treePanels[1].open:
+	case m.secondaryPanel.open:
 		tree2Outer = max(22, treesTotal)
 	}
 
-	m.treePanels[0].width = max(0, tree1Outer-2)
-	m.treePanels[1].width = max(0, tree2Outer-2)
+	m.primaryPanel.width = max(0, tree1Outer-2)
+	m.secondaryPanel.width = max(0, tree2Outer-2)
 	m.fileModel.filePreview.width = previewOuter
 
 	// Keep maxFilePanel dynamic so createNewFilePanel still works in tests
@@ -290,8 +291,8 @@ func (m *model) treePanelStartX(idx int) int {
 		return sidebarOuter
 	}
 	tree1OuterW := 0
-	if m.treePanels[0].open {
-		tree1OuterW = m.treePanels[0].width + 2
+	if m.primaryPanel.open {
+		tree1OuterW = m.primaryPanel.width + 2
 	}
 	return sidebarOuter + tree1OuterW
 }
@@ -545,10 +546,10 @@ func (m *model) createNewFilePanelRelativeToCurrent(path string) error {
 
 func (m *model) contentSearchInActiveTree(query string) error {
 	if query == "" {
-		m.treePanels[int(m.activeFileArea)].clearContentFilter()
+		m.treePanelByIndex(int(m.activeFileArea)).clearContentFilter()
 		return nil
 	}
-	tree := &m.treePanels[int(m.activeFileArea)]
+	tree := m.treePanelByIndex(int(m.activeFileArea))
 	searcher := backend.NewRipgrepSearcher()
 	paths, err := searcher.Search(tree.root, query)
 	if err != nil {
@@ -612,13 +613,13 @@ func (m *model) View() string {
 	parts := []string{sidebar}
 
 	tree1Str := ""
-	if m.treePanels[0].open {
+	if m.primaryPanel.open {
 		tree1Str = m.treePanelRender(0)
 		parts = append(parts, tree1Str)
 	}
 
 	tree2Str := ""
-	if m.treePanels[1].open {
+	if m.secondaryPanel.open {
 		tree2Str = m.treePanelRender(1)
 		parts = append(parts, tree2Str)
 	}

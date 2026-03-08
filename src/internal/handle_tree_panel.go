@@ -13,11 +13,11 @@ import (
 )
 
 // handleTreePanelKey handles all keyboard input when a tree panel has focus.
-// idx is 0 for the left tree and 1 for the right tree.
+// idx is 0 for the left (primary) tree and 1 for the right (secondary) tree.
 //
 //nolint:cyclop,funlen // large dispatch switch
 func (m *model) handleTreePanelKey(msg string, idx int) tea.Cmd {
-	tree := &m.treePanels[idx]
+	tree := m.treePanelByIndex(idx)
 	visibleH := m.mainPanelHeight - 2
 
 	switch {
@@ -37,10 +37,9 @@ func (m *model) handleTreePanelKey(msg string, idx int) tea.Cmd {
 		// For regular files: only act when in chooser mode (never xdg-open from right arrow).
 		m.treeEnterNode(idx) //nolint:errcheck // returns nil cmd
 		// Sync opposite panel if it is in detail mode.
-		otherIdx := 1 - idx
-		if m.treePanels[otherIdx].mode == treePanelModeDetail {
-			if node := m.treePanels[idx].GetSelectedNode(); node != nil && node.isDir {
-				other := &m.treePanels[otherIdx]
+		other := m.treePanelByIndex(1 - idx)
+		if other.mode == treePanelModeDetail {
+			if node := tree.GetSelectedNode(); node != nil && node.isDir {
 				other.detailRoot = node.path
 				other.detailEntries = buildDetailEntries(node.path, other.showHidden)
 				other.cursor = 0
@@ -101,10 +100,10 @@ func (m *model) handleTreePanelKey(msg string, idx int) tea.Cmd {
 
 	// ---- Focus cycling ----
 	case msg == "tab":
-		if idx == 0 && m.treePanels[1].open {
-			m.setTree2PanelActive()
+		if idx == 0 && m.secondaryPanel.open {
+			m.setSecondaryPanelActive()
 		} else {
-			m.setTree1PanelActive()
+			m.setPrimaryPanelActive()
 		}
 
 	case msg == "ctrl+right":
@@ -138,7 +137,7 @@ func (m *model) handleTreePanelKey(msg string, idx int) tea.Cmd {
 	case slices.Contains(common.Hotkeys.ToggleDotFile, msg):
 		m.toggleDotFileController()
 		m.syncTreeHiddenState()
-		m.treePanels[idx].rebuild()
+		tree.rebuild()
 
 	case slices.Contains(common.Hotkeys.ToggleFooter, msg):
 		m.toggleFooterController()
@@ -276,50 +275,61 @@ func (m *model) handleTreePanelKey(msg string, idx int) tea.Cmd {
 
 // treeEnterNode expands a directory node at the cursor of the given tree.
 func (m *model) treeEnterNode(idx int) tea.Cmd {
-	node := m.treePanels[idx].GetSelectedNode()
+	tree := m.treePanelByIndex(idx)
+	node := tree.GetSelectedNode()
 	if node == nil || !node.isDir {
 		return nil
 	}
-	m.treePanels[idx].ExpandNode()
+	tree.ExpandNode()
 	return nil
 }
 
-// setTree1PanelActive switches keyboard focus to the left tree (index 0).
-func (m *model) setTree1PanelActive() {
-	m.activeFileArea = tree1PanelActive
-	m.treePanels[0].focusType = focus
-	m.treePanels[1].focusType = secondFocus
+// treePanelByIndex returns a pointer to the tree panel at the given index.
+// 0 returns the primary panel, 1 returns the secondary panel.
+func (m *model) treePanelByIndex(idx int) *treePanelModel {
+	if idx == 0 {
+		return &m.primaryPanel
+	}
+	return &m.secondaryPanel
 }
 
-// setTree2PanelActive switches keyboard focus to the right tree (index 1).
-func (m *model) setTree2PanelActive() {
-	m.activeFileArea = tree2PanelActive
-	m.treePanels[0].focusType = secondFocus
-	m.treePanels[1].focusType = focus
+// setPrimaryPanelActive switches keyboard focus to the primary (left) tree.
+func (m *model) setPrimaryPanelActive() {
+	m.activeFileArea = primaryPanelActive
+	m.primaryPanel.focusType = focus
+	m.secondaryPanel.focusType = secondFocus
+}
+
+// setSecondaryPanelActive switches keyboard focus to the secondary (right) tree.
+func (m *model) setSecondaryPanelActive() {
+	m.activeFileArea = secondaryPanelActive
+	m.primaryPanel.focusType = secondFocus
+	m.secondaryPanel.focusType = focus
 }
 
 // syncTreeHiddenState pushes the current toggleDotFile value into both tree panels.
 // rebuildAllTrees refreshes both tree panels from disk, e.g. after file operations.
 func (m *model) rebuildAllTrees() {
-	for i := range m.treePanels {
-		m.treePanels[i].rebuild()
-	}
+	m.primaryPanel.rebuild()
+	m.secondaryPanel.rebuild()
 	// Refresh detail entries for any panel currently in detail mode.
-	for i := range m.treePanels {
-		if m.treePanels[i].mode == treePanelModeDetail {
-			m.treePanels[i].detailEntries = buildDetailEntries(m.treePanels[i].detailRoot, m.treePanels[i].showHidden)
-		}
+	if m.primaryPanel.mode == treePanelModeDetail {
+		m.primaryPanel.detailEntries = buildDetailEntries(m.primaryPanel.detailRoot, m.primaryPanel.showHidden)
+	}
+	if m.secondaryPanel.mode == treePanelModeDetail {
+		m.secondaryPanel.detailEntries = buildDetailEntries(m.secondaryPanel.detailRoot, m.secondaryPanel.showHidden)
 	}
 }
 
 func (m *model) syncTreeHiddenState() {
-	m.treePanels[0].showHidden = m.toggleDotFile
-	m.treePanels[1].showHidden = m.toggleDotFile
+	m.primaryPanel.showHidden = m.toggleDotFile
+	m.secondaryPanel.showHidden = m.toggleDotFile
 	// Refresh detail entries for any panel currently in detail mode.
-	for i := range m.treePanels {
-		if m.treePanels[i].mode == treePanelModeDetail {
-			m.treePanels[i].detailEntries = buildDetailEntries(m.treePanels[i].detailRoot, m.treePanels[i].showHidden)
-		}
+	if m.primaryPanel.mode == treePanelModeDetail {
+		m.primaryPanel.detailEntries = buildDetailEntries(m.primaryPanel.detailRoot, m.primaryPanel.showHidden)
+	}
+	if m.secondaryPanel.mode == treePanelModeDetail {
+		m.secondaryPanel.detailEntries = buildDetailEntries(m.secondaryPanel.detailRoot, m.secondaryPanel.showHidden)
 	}
 }
 

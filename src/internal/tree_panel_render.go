@@ -15,7 +15,7 @@ import (
 // treePanelRender renders the tree panel at the given index (0=left, 1=right).
 // Returns an empty string when the panel is closed.
 func (m *model) treePanelRender(idx int) string {
-	tree := &m.treePanels[idx]
+	tree := m.treePanelByIndex(idx)
 	if !tree.open {
 		return ""
 	}
@@ -132,13 +132,15 @@ func (m *model) treePanelRender(idx int) string {
 		branchStr := treeNodeBranchPrefix(nodes, i)
 
 		// Expand/collapse indicator for directories
+		// A node is visually expanded if its children are rendered, matching tree_panel.go:154
 		var expandIndicator string
 		if node.isDir {
 			hasKids := tree.HasChildren(node.path)
-			if hasKids && tree.IsExpanded(node.path) && node.depth < tree.maxDepth {
-				expandIndicator = ""
+			isVisuallyExpanded := (node.depth < tree.maxDepth || tree.expanded[node.path]) && tree.IsExpanded(node.path)
+			if hasKids && isVisuallyExpanded {
+				expandIndicator = ""
 			} else if hasKids {
-				expandIndicator = ""
+				expandIndicator = ""
 			} else {
 				expandIndicator = " "
 			}

@@ -13,8 +13,16 @@ import (
 type fileAreaFocus int
 
 const (
-	tree1PanelActive fileAreaFocus = iota // left tree (index 0)
-	tree2PanelActive                      // right tree (index 1)
+	primaryPanelActive   fileAreaFocus = iota // primary (left) file panel
+	secondaryPanelActive                      // secondary (right) file panel
+)
+
+// secondaryPanelMode defines the role of the secondary panel.
+type secondaryPanelMode int
+
+const (
+	secondaryModeTree   secondaryPanelMode = iota // independent file tree
+	secondaryModeDetail                            // detail view of primary's selected dir
 )
 
 // treeNode is a single entry in the flattened visible tree list.
@@ -472,6 +480,42 @@ func (t *treePanelModel) GetSelectedNode() *treeNode {
 // IsExpanded reports whether path is currently expanded (not in collapsed set).
 func (t *treePanelModel) IsExpanded(path string) bool {
 	return !t.collapsed[path]
+}
+
+// ExpandToPathAndSelect expands the tree to reveal targetPath and positions
+// the cursor on it. targetPath must be under t.root. Directories along the
+// path from root to target are added to the expanded set.
+func (t *treePanelModel) ExpandToPathAndSelect(targetPath string) {
+	// Build list of dirs from root down to targetPath
+	rel, err := filepath.Rel(t.root, targetPath)
+	if err != nil || strings.HasPrefix(rel, "..") {
+		return // targetPath not under root
+	}
+
+	// Expand each directory component
+	parts := strings.Split(rel, string(filepath.Separator))
+	currentPath := t.root
+	for _, part := range parts {
+		if part == "" || part == "." {
+			continue
+		}
+		currentPath = filepath.Join(currentPath, part)
+		if t.expanded == nil {
+			t.expanded = make(map[string]bool)
+		}
+		t.expanded[currentPath] = true
+		delete(t.collapsed, currentPath)
+	}
+
+	t.rebuild()
+
+	// Find and select the target node
+	for i, n := range t.nodes {
+		if n.path == targetPath {
+			t.cursor = i
+			return
+		}
+	}
 }
 
 // HasChildren reports whether dir at path has at least one visible child.

@@ -111,8 +111,8 @@ func (m *model) sidebarSelectDirectory() {
 	if path == "" {
 		return
 	}
-	m.treePanels[0].NavigateTo(path)
-	m.setTree1PanelActive()
+	m.primaryPanel.NavigateTo(path)
+	m.setPrimaryPanelActive()
 }
 
 // Select all item in the file panel (only work on select mode)
