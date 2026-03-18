@@ -1,3 +1,0 @@
-sample_bool = true 
-sample_slice = ['a', 'b']
-ignore_missing = false

@@ -1,5 +1,0 @@
-sample_bool = true 
-sample_int = 2
-sample_str = "hello"
-sample_slice =
-ignore_missing = false

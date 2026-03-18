@@ -1,4 +1,0 @@
-sample_bool = true 
-sample_int = "hi"
-sample_str = "hello"
-ignore_missing = false
