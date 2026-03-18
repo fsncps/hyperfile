@@ -129,3 +129,7 @@ func (r *Renderer) Style() lipgloss.Style {
 	}
 	return s
 }
+
+func (r *Renderer) ContentWidth() int {
+	return r.contentWidth
+}

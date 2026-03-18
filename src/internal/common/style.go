@@ -60,6 +60,9 @@ var (
 var (
 	PromptSuccessStyle lipgloss.Style
 	PromptFailureStyle lipgloss.Style
+
+	TreeBranchStyle           lipgloss.Style
+	TreeBranchCursorLineStyle lipgloss.Style
 )
 var TransparentBackgroundColor string
 
@@ -73,11 +76,12 @@ var (
 	FooterBorderActiveColor    lipgloss.Color
 	ModalBorderActiveColor     lipgloss.Color
 
-	FullScreenBGColor lipgloss.Color
-	FilePanelBGColor  lipgloss.Color
-	SidebarBGColor    lipgloss.Color
-	FooterBGColor     lipgloss.Color
-	ModalBGColor      lipgloss.Color
+	FullScreenBGColor          lipgloss.Color
+	FilePanelBGColor           lipgloss.Color
+	FilePanelCursorLineBGColor lipgloss.Color
+	SidebarBGColor             lipgloss.Color
+	FooterBGColor              lipgloss.Color
+	ModalBGColor               lipgloss.Color
 
 	FullScreenFGColor lipgloss.Color
 	FilePanelFGColor  lipgloss.Color
@@ -127,6 +131,7 @@ func LoadThemeConfig() { //nolint: funlen // Variable initialization
 
 	FullScreenBGColor = lipgloss.Color(Theme.FullScreenBG)
 	FilePanelBGColor = lipgloss.Color(Theme.FilePanelBG)
+	FilePanelCursorLineBGColor = lipgloss.Color(Theme.FilePanelItemSelectedBG)
 	SidebarBGColor = lipgloss.Color(Theme.SidebarBG)
 	FooterBGColor = lipgloss.Color(Theme.FooterBG)
 	ModalBGColor = lipgloss.Color(Theme.ModalBG)
@@ -216,6 +221,10 @@ func LoadThemeConfig() { //nolint: funlen // Variable initialization
 	// Prompt Style
 	PromptSuccessStyle = lipgloss.NewStyle().Foreground(promptSuccessColor).Background(ModalBGColor)
 	PromptFailureStyle = lipgloss.NewStyle().Foreground(promptFailureColor).Background(ModalBGColor)
+
+	// Tree Panel Styles
+	TreeBranchStyle = lipgloss.NewStyle().Foreground(FilePanelFGColor).Background(FilePanelBGColor)
+	TreeBranchCursorLineStyle = lipgloss.NewStyle().Foreground(cursorColor).Background(FilePanelCursorLineBGColor)
 }
 
 func TransparentAllBackgroundColor() {

@@ -63,16 +63,16 @@ type ThemeType struct {
 
 // Configuration settings
 type ConfigType struct {
-	Theme string `toml:"theme" comment:"More details are at https://superfile.netlify.app/configure/superfile-config/\nchange your theme"`
+	Theme string `toml:"theme" comment:"More details are at https://hyperfile.netlify.app/configure/hyperfile-config/\nchange your theme"`
 
 	Editor                 string `toml:"editor" comment:"\nThe editor files will be opened with. (Leave blank to use the EDITOR environment variable)."`
 	DirEditor              string `toml:"dir_editor" comment:"\nThe editor directories will be opened with. (Leave blank to use the default editors)."`
 	AutoCheckUpdate        bool   `toml:"auto_check_update" comment:"\nAuto check for update"`
-	CdOnQuit               bool   `toml:"cd_on_quit" comment:"\nCd on quit (For more details, please check out https://superfile.netlify.app/configure/superfile-config/#cd_on_quit)"`
-	DefaultOpenFilePreview bool   `toml:"default_open_file_preview" comment:"\nWhether to open file preview automatically every time superfile is opened."`
+	CdOnQuit               bool   `toml:"cd_on_quit" comment:"\nCd on quit (For more details, please check out https://hyperfile.netlify.app/configure/hyperfile-config/#cd_on_quit)"`
+	DefaultOpenFilePreview bool   `toml:"default_open_file_preview" comment:"\nWhether to open file preview automatically every time hyperfile is opened."`
 	ShowImagePreview       bool   `toml:"show_image_preview" comment:"\nWhether to show image preview."`
 	ShowPanelFooterInfo    bool   `toml:"show_panel_footer_info" comment:"\nWhether to show additional footer info for file panel."`
-	DefaultDirectory       string `toml:"default_directory" comment:"\nThe path of the first file panel when superfile is opened."`
+	DefaultDirectory       string `toml:"default_directory" comment:"\nThe path of the first file panel when hyperfile is opened."`
 	FileSizeUseSI          bool   `toml:"file_size_use_si" comment:"\nDisplay file sizes using powers of 1000 (kB, MB, GB) instead of powers of 1024 (KiB, MiB, GiB)."`
 	DefaultSortType        int    `toml:"default_sort_type" comment:"\nDefault sort type (0: Name, 1: Size, 2: Date Modified, 3: Type)."`
 	SortOrderReversed      bool   `toml:"sort_order_reversed" comment:"\nDefault sort order (false: Ascending, true: Descending)."`
@@ -159,10 +159,34 @@ type HotkeysType struct {
 	ConfirmTyping []string `toml:"confirm_typing" comment:"=================================================================================================\nTyping hotkeys (can conflict with all hotkeys)"`
 	CancelTyping  []string `toml:"cancel_typing"`
 
-	ParentDirectory []string `toml:"parent_directory" comment:"=================================================================================================\nNormal mode hotkeys (can conflict with other modes, cannot conflict with global hotkeys)"`
-	SearchBar       []string `toml:"search_bar"`
+	ParentDirectory   []string `toml:"parent_directory" comment:"=================================================================================================\nNormal mode hotkeys (can conflict with other modes, cannot conflict with global hotkeys)"`
+	SearchBar         []string `toml:"search_bar"`
+	TreeDepthIncrease []string `toml:"tree_depth_increase"`
+	TreeDepthDecrease []string `toml:"tree_depth_decrease"`
+	ViewMode1         []string `toml:"view_mode_1"`
+	ViewMode2         []string `toml:"view_mode_2"`
+	ViewMode3         []string `toml:"view_mode_3"`
+	ViewMode4         []string `toml:"view_mode_4"`
+	ToggleDetailView  []string `toml:"toggle_detail_view"`
+	ContentSearch     []string `toml:"content_search"`
+	ClearClipboard    []string `toml:"clear_clipboard"`
 
 	FilePanelSelectModeItemsSelectDown []string `toml:"file_panel_select_mode_items_select_down" comment:"=================================================================================================\nSelect mode hotkeys (can conflict with other modes, cananot conflict with global hotkeys)"`
 	FilePanelSelectModeItemsSelectUp   []string `toml:"file_panel_select_mode_items_select_up"`
 	FilePanelSelectAllItem             []string `toml:"file_panel_select_all_items"`
+}
+
+type HotkeyDisplayEntry struct {
+	ID          string
+	Context     string
+	Key         string
+	Name        string
+	Description string
+	Icon        string
+}
+
+type HotkeyDisplayGroup struct {
+	Context string
+	Title   string
+	Items   []HotkeyDisplayEntry
 }

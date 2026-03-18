@@ -73,6 +73,20 @@ func PrettierName(name string, width int, isDir bool, isSelected bool, bgColor l
 		FilePanelStyle.Render(TruncateText(name, width, "..."))
 }
 
+func PrettierNameWithBG(name string, width int, isDir bool, isSelected bool, bgColor lipgloss.Color) string {
+	style := GetElementIcon(name, isDir, Config.Nerdfont)
+	if isSelected {
+		return StringColorRender(lipgloss.Color(style.Color), bgColor).
+			Background(bgColor).
+			Render(style.Icon+" ") +
+			FilePanelItemSelectedStyle.Render(TruncateText(name, width, "..."))
+	}
+	return StringColorRender(lipgloss.Color(style.Color), bgColor).
+		Background(bgColor).
+		Render(style.Icon+" ") +
+		FilePanelStyle.Render(TruncateText(name, width, "..."))
+}
+
 func PrettierDirectoryPreviewName(name string, isDir bool, bgColor lipgloss.Color) string {
 	style := GetElementIcon(name, isDir, Config.Nerdfont)
 	return StringColorRender(lipgloss.Color(style.Color), bgColor).

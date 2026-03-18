@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/yorukot/superfile/src/config/icon"
+	"github.com/fsncps/hyperfile/src/config/icon"
 )
 
 const WheelRunTime = 5
@@ -52,6 +52,10 @@ var (
 )
 
 var (
+	HotkeyDisplayGroups []HotkeyDisplayGroup
+)
+
+var (
 	UnsupportedPreviewFormats = []string{".pdf", ".torrent"}
 )
 
@@ -67,7 +71,7 @@ func LoadInitialPrerenderedVariables() {
 // loadConfigFile() in config_types.go should be finished
 // InitIcon() in config package in function.go should be finished
 func LoadPrerenderedVariables() {
-	SideBarSuperfileTitle = SidebarTitleStyle.Render(" " + icon.SuperfileIcon + icon.Space + "superfile")
+	SideBarSuperfileTitle = SidebarTitleStyle.Render(" " + icon.SuperfileIcon + icon.Space + "hyperfile")
 
 	SideBarPinnedDivider = SidebarTitleStyle.Render(icon.Pinned+icon.Space+"Pinned") +
 		SidebarDividerStyle.Render(" ───────────")
